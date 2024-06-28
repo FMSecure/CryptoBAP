@@ -112,7 +112,7 @@ val binterl_sbir_to_sapic_thm = store_thm(
      rw[] >>
      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [sbirEvent_vs_DY_to_sapicFact_vs_DY_def,sbirEvent_vs_Sync_to_sapicFact_vs_Sync_def] >>
      metis_tac [binterl_syncR]
-  )
+  );
 
 val compose_sbir_sapic_vs_DY_thm = store_thm(
   "compose_sbir_sapic_vs_DY_thm",
@@ -130,7 +130,7 @@ val compose_sbir_sapic_vs_DY_thm = store_thm(
      Q.EXISTS_TAC `(MAP sbirEvent_vs_Sync_to_sapicFact_vs_Sync t1)` >>
      Q.EXISTS_TAC `t2` >>
      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [binterl_sbir_to_sapic_thm]
-  )
+  );
 
 
 
