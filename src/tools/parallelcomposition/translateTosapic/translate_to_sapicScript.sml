@@ -188,7 +188,7 @@ val symbtree_to_sapic_single_step_simulation_thm = store_thm(
         (((single_step_execute_symbolic_tree Tree E Tree' ) ∧ (sim Tree (Pconfig (Pro,i,Re,NRe))))
          ⇒ (∃Pro' i' Re' NRe' Ev. (sim Tree' (Pconfig (Pro',i',Re',NRe'))) ∧ (sapic_position_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'))) ∧ (Ev = sbirEvent_to_sapicFact E)))``,                                                                                                               
 gen_tac >>
-  Cases_on ‘E’ >- (
+  Cases_on ‘E'’ >- (
     rewrite_tac[sbirEvent_to_sapicFact_def] >>
 rw[single_step_execute_symbolic_tree_def]>>
 IMP_RES_TAC sim_def>>
@@ -418,7 +418,7 @@ val symbtree_to_sapic_trace_simulation_thm = store_thm(
          ⇒ (∃Pro' i' Re' NRe' Ev. (sim Tree' (Pconfig (Pro',i',Re',NRe'))) ∧ (sapic_position_multi_transitions (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'))) ∧ (Ev = MAP sbirEvent_to_sapicFact E))) ``,
 
 gen_tac>>
-  Induct_on ‘E’ >-(
+  Induct_on ‘E'’ >-(
     rewrite_tac[sbirEvent_to_sapicFact_def]>>
     rw[execute_symbolic_tree_def]>>
     Q.EXISTS_TAC `Pro` >>

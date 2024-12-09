@@ -4,15 +4,16 @@ open synceventsTheory;
 
 val _ = new_theory "dolevyao";
 
-    
+
 (* Dolev-Yao predicates *)
 val _ = Datatype `DYpred =
 K SapicTerm_t (* Adversary can deduce term *)
 | Fr SapicTerm_t (* Term is fresh *)
-| Equ (SapicTerm_t # SapicTerm_t) (* both terms *)
+| DotEqu (SapicTerm_t # SapicTerm_t) (* both terms *)
+| AliEqu (Var_t # SapicTerm_t) (* both terms *)
       `;
     
-
+val _ = Theory.new_constant("E", ``:SapicTerm_t -> SapicTerm_t -> bool``);
       
 (* Dolev-Yao deduction relation *)
 val (DYdeduction_rules, DYdeduction_ind, DYdeduction_cases)
@@ -21,8 +22,9 @@ val (DYdeduction_rules, DYdeduction_ind, DYdeduction_cases)
   (∀(n:SapicTerm_t) (Pi: DYpred set). (n = (Con (Name (PubName:NameTag_t) (str:string)))) ==> (DYdeduction Pi (K n))) ∧
 (∀(k:SapicTerm_t) (m:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (K k)) ∧ (DYdeduction Pi (K m))) ==> (DYdeduction Pi (K (FAPP  ("Enc", (2, Public, Constructor)) [m;k])))) ∧
 (∀(k:SapicTerm_t) (m:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (K k)) ∧ (DYdeduction Pi (K (FAPP  ("Enc", (2, Public, Constructor)) [m;k])))) ==> (DYdeduction Pi (K m))) ∧
-(∀(t1:SapicTerm_t) (t2:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (K t1)) ∧ (DYdeduction Pi (Equ (t1,t2)))) ==> (DYdeduction Pi (K t2))) ∧
-(∀(n1:SapicTerm_t) (n2:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (Fr n1)) ∧ (DYdeduction Pi (Equ (n1,n2)))) ==> (DYdeduction Pi (Fr n2))) 
+(∀(t1:SapicTerm_t) (t2:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (K t1)) ∧ (DYdeduction Pi (DotEqu (t1,t2)))) ==> (DYdeduction Pi (K t2))) ∧
+(∀(n1:SapicTerm_t) (n2:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (Fr n1)) ∧ (DYdeduction Pi (DotEqu (n1,n2)))) ==> (DYdeduction Pi (Fr n2))) ∧
+(∀(t1:SapicTerm_t) (t2:SapicTerm_t) (v:Var_t) (Pi: DYpred set). ((DYdeduction Pi (K t1)) ∧ (DYdeduction Pi (AliEqu (v,t2)))) ==> (DYdeduction Pi (K (sapic_substvar v t2 t1)))) 
 `;
 
 
@@ -30,6 +32,7 @@ val (DYdeduction_rules, DYdeduction_ind, DYdeduction_cases)
 val _ = Datatype
         `DYnsyc_event =
 Silent Name_t
+| Ded DYpred
 | Alias (Var_t # SapicTerm_t)
         `;
 
@@ -45,10 +48,11 @@ ESt       (* empty state *)
 val DYtranrel_def =
 Define` 
       (DYtranrel (Sym,Pi,ESt) (SOME (INR (P2A Y))) (Sym',Pi',ESt) = ((Y ∉ Sym) ∧ (Pi' = Pi∪{K (TVar Y)}) ∧ (Sym = Sym'))) ∧
-      (DYtranrel (Sym,Pi,ESt) (SOME (INL (Alias (X',Y')))) (Sym',Pi',ESt) = ((X' ∉ Sym) ∧ (Sym' = Sym∪{X'}) ∧ (Pi' = Pi∪{Equ((TVar X'),Y')}))) ∧
+      (DYtranrel (Sym,Pi,ESt) (SOME (INL (Alias (X',Y')))) (Sym',Pi',ESt) = ((X' ∉ Sym) ∧ (Sym' = Sym∪{X'}) ∧ (Pi' = Pi∪{AliEqu(X',Y')}))) ∧
       (DYtranrel (Sym,Pi,ESt) (SOME (INR (A2P X))) (Sym',Pi',ESt) = ((K (TVar X) ∈ Pi) ∧ (Pi = Pi') ∧ (Sym = Sym'))) ∧
       (DYtranrel (Sym,Pi,ESt) (SOME (INL (Silent n))) (Sym',Pi',ESt) = ((Fr (Con n) ∉ Pi ) ∧ (Pi' = Pi∪{(Fr (Con n));(K (Con n))}) ∧ (Sym = Sym'))) ∧
       (DYtranrel (Sym,Pi,ESt) (SOME (INR (Sync_Fr n'))) (Sym',Pi',ESt) = ((Fr (Con n') ∉ Pi ) ∧ (Pi' = Pi∪{Fr (Con n')}) ∧ (Sym = Sym'))) ∧
+      (DYtranrel (Sym,Pi,ESt) (SOME (INL (Ded p))) (Sym',Pi',ESt) = ((Pi' = Pi∪{p}) ∧ (DYdeduction Pi p) ∧ (Sym = Sym'))) ∧
       (DYtranrel (Sym,Pi,ESt) (NONE) (Sym',Pi',ESt) = ((Pi = Pi') ∧ (Sym = Sym')))
 `;                                      
 

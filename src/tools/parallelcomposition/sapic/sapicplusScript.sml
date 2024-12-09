@@ -666,7 +666,16 @@ val sapic_position_new_transition_def = Define `
    (i' = i+1) /\
    (Re' = (sapic_renaming_update Re ((Var "RNG" 0), SOME (Con N)))))`;
                                                                         
-                
+(* K rule *)
+val sapic_position_k_transition_def = Define `
+                                  sapic_position_k_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe')) =
+(∃t.
+   (Pro' = Pro) /\
+   (Ev = (Fact KUFact [t])) /\
+   (Re' = (sapic_renaming_update Re ((Var "Adv" 0), SOME (t)))) /\
+   (i' = i+1) /\
+   (NRe = NRe'))`;
+                        
 (* In rule *)
 val sapic_position_in_transition_def = Define `
                                   sapic_position_in_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe')) =
@@ -730,7 +739,8 @@ sapic_position_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'
          | (ProcessAction (ChOut (SOME t1) t2) P) => (sapic_position_out_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe')))
          | (ProcessComb (Let t1 t2) P Q) => ((sapic_position_let_true_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'))) ∨ (sapic_position_let_false_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'))))
          | (ProcessAction (New N) P) => (sapic_position_new_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe')))
-         | _ => (F)
+         | _ => F
+
      )
 )`;
 
@@ -845,7 +855,16 @@ val sapic_plus_position_new_transition_def = Define `
    (i' = i+1) /\
    (Re' = (sapic_renaming_update Re ((Var "RNG" 0), SOME (Con N)))))`;
                                                                         
-                
+(* K rule *)
+val sapic_plus_position_k_transition_def = Define `
+                                  sapic_plus_position_k_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe')) =
+(∃t.
+   (Pro' = Pro) /\
+   (Ev = SOME (INL (INL (Fact KUFact [t])))) /\
+   (Re' = (sapic_renaming_update Re ((Var "Adv" 0), SOME t))) /\
+   (i' = i+1) /\
+   (NRe = NRe'))`;
+                        
 (* In rule *)
 val sapic_plus_position_in_transition_def = Define `
                                   sapic_plus_position_in_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe')) =
@@ -898,7 +917,8 @@ val sapic_plus_position_let_false_transition_def = Define `
 val sapic_plus_position_transition_with_symb_def = Define `
                                                           (sapic_plus_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred + DYpred -> bool)),((Pconfig_plus (Pro,i,Re,NRe)):sapic_plus_position_configuration_t)) (Ev:((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)) option) ((Sym':(Var_t -> bool)),(P':('SPpred + DYpred -> bool)),((Pconfig_plus (Pro',i',Re',NRe')):sapic_plus_position_configuration_t)) =
                                                            (case Ev of
-       SOME (INR (INL (Alias (x,y)))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INL (Alias (x,y)))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
+                                                              SOME (INR (INL (Alias (x,y)))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INL (Alias (x,y)))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
+     |  SOME (INR (INL (Ded p))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INL (Ded p))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))                                                                                                       
      | SOME (INR (INR (A2P x))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (A2P x))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INL (INR (A2P x))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (A2P x))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INR (INR (P2A Y))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (P2A Y))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
@@ -907,7 +927,7 @@ val sapic_plus_position_transition_with_symb_def = Define `
      | SOME (INL (INR (Sync_Fr N))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (Sync_Fr N))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INR (INL (Silent N))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INL (Silent N))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INL (INL (Fact OutFact [t2]))) => ((sapic_plus_position_out_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))) ∧ (IMAGE OUTR P' = IMAGE OUTR P) ∧ (Sym = Sym'))
-     | SOME (INL (INL (Fact InFact [(TVar x)]))) => ((sapic_plus_position_in_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))) ∧ (IMAGE OUTR P' = IMAGE OUTR P) ∧ (Sym = Sym'))
+     | SOME (INL (INL (Fact InFact [(TVar x)]))) => ((sapic_plus_position_in_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))) ∧ (IMAGE OUTR P' = IMAGE OUTR P) ∧ (Sym = Sym'))             
      | SOME (INL (INL (Fact DedFact [t2]))) => (((sapic_plus_position_let_false_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe')))∨(sapic_plus_position_let_true_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe')))) ∧ (IMAGE OUTR P' = IMAGE OUTR P) ∧ (Sym = Sym'))
      | SOME (INL (INL (Fact FreshFact [(Con N)]))) => ((sapic_plus_position_new_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))) ∧ (IMAGE OUTR P' = IMAGE OUTR P) ∧ (Sym = Sym'))
      | SOME (INL (INL (Fact TermFact [t])))  => ((IMAGE OUTR P' = IMAGE OUTR P) ∧ (Sym = Sym') ∧

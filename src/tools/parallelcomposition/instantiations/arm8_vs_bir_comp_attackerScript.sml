@@ -13,7 +13,6 @@ open sapicplusTheory;
 open messagesTheory;
 open dolevyaoTheory;
 open traceinclusionTheory;
-open XORexampleTheory;
 open bir_programTheory;
 open bir_program_valid_stateTheory;
 open HolBACoreSimps;

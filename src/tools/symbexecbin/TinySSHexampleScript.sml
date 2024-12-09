@@ -145,7 +145,7 @@ val symb_filter_lift = fn secname =>
 			    | ".page2" => (fn symbname => List.exists (fn x => x = symbname) symbs_sec_text)
 			    | ".page3" => (fn symbname => List.exists (fn x => x = symbname) symbs_sec_text)
 			    | _        => (K false);
-
+(*
 val (region_map, sections) = read_disassembly_file_regions dafilename;
 
 
@@ -153,7 +153,7 @@ val (region_map, sections) = read_disassembly_file_regions dafilename;
 val (thm, errors) = bmil_arm8.bir_lift_prog_gen prog_range sections;
 
 val _ = save_thm ("TinySSHexample_thm", thm);
-
+*)
 
 
 val _ = export_theory();
