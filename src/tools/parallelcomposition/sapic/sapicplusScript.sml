@@ -460,6 +460,7 @@ val sapic_new_transition_def = Define `
    (Pnew = (BAG_UNION Ps {|(process_substname N (Con N') P)|})) /\
    (Ev = []) /\
    (N' = Name FreshName n') /\
+   (N' NOTIN Ns) /\
    (Ns' = (N' INSERT Ns)) /\
    (St = St') /\
    (Sb = Sb') /\
