@@ -61,5 +61,5 @@ config.env.sh
 *.elf
 *.o
 # generally all .da files
-#*.da
+*.da
 

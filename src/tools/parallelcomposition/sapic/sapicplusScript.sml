@@ -460,7 +460,6 @@ val sapic_new_transition_def = Define `
    (Pnew = (BAG_UNION Ps {|(process_substname N (Con N') P)|})) /\
    (Ev = []) /\
    (N' = Name FreshName n') /\
-   (N' NOTIN Ns) /\
    (Ns' = (N' INSERT Ns)) /\
    (St = St') /\
    (Sb = Sb') /\
@@ -746,7 +745,7 @@ sapic_position_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'
 )`;
 
 val PConfigNoStep = new_axiom ("PConfigNoStep",
-                            ``∀p r re nr. (sapic_position_transition (Pconfig (p,r,re,nre)) (Fact TermFact []) (Pconfig (p,r,re,nre))) = T``);                
+                            ``∀p r re nre. (sapic_position_transition (Pconfig (p,r,re,nre)) (Fact TermFact []) (Pconfig (p,r,re,nre))) = T``);                
  
 (* sapic_position_multi_transitions *)
 Inductive sapic_position_multi_transitions:
@@ -760,9 +759,9 @@ val sapic_position_transition_with_symb_def = Define `
 (sapic_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred -> bool)),(Pconfig (Pro,i,Re,NRe))) NONE ((Sym':(Var_t -> bool)),(P':('SPpred -> bool)),(Pconfig (Pro',i',Re',NRe'))) =
 (((Sym = Sym') ∨ (∃y. Sym' = Sym ∪ {y})) ∧ (P = P') ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
 ) ∧
-(sapic_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred -> bool)),(Pconfig (Pro,i,Re,NRe))) (SOME ((INL Ev):(SapicFact_t + (Name_t, Var_t) sync_event))) ((Sym':(Var_t -> bool)),(P':('SPpred -> bool)),(Pconfig (Pro',i',Re',NRe'))) = (sapic_position_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe')))
+(sapic_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred -> bool)),(Pconfig (Pro,i,Re,NRe))) (SOME ((INL Ev):(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event))) ((Sym':(Var_t -> bool)),(P':('SPpred -> bool)),(Pconfig (Pro',i',Re',NRe'))) = (sapic_position_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe')))
 ) ∧
-(sapic_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred -> bool)),(Pconfig (Pro,i,Re,NRe))) (SOME ((INR Ev):(SapicFact_t + (Name_t, Var_t) sync_event))) ((Sym':(Var_t -> bool)),(P':('SPpred -> bool)),(Pconfig (Pro',i',Re',NRe'))) = ((Sym = Sym') ∧ (P = P') ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
+(sapic_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred -> bool)),(Pconfig (Pro,i,Re,NRe))) (SOME ((INR Ev):(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event))) ((Sym':(Var_t -> bool)),(P':('SPpred -> bool)),(Pconfig (Pro',i',Re',NRe'))) = ((Sym = Sym') ∧ (P = P') ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
 )`;            
 
 Inductive sapic_position_multi_transitions_with_symb:
@@ -916,12 +915,14 @@ val sapic_plus_position_let_false_transition_def = Define `
    (NRe = NRe'))`;
                                                           
 val sapic_plus_position_transition_with_symb_def = Define `
-                                                          (sapic_plus_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred + DYpred -> bool)),((Pconfig_plus (Pro,i,Re,NRe)):sapic_plus_position_configuration_t)) (Ev:((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)) option) ((Sym':(Var_t -> bool)),(P':('SPpred + DYpred -> bool)),((Pconfig_plus (Pro',i',Re',NRe')):sapic_plus_position_configuration_t)) =
+                                                          (sapic_plus_position_transition_with_symb ((Sym:(Var_t -> bool)),(P:('SPpred + DYpred -> bool)),((Pconfig_plus (Pro,i,Re,NRe)):sapic_plus_position_configuration_t)) (Ev:((SapicFact_t + (Name_t, Sig_t, Var_t) sync_event)+(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)) option) ((Sym':(Var_t -> bool)),(P':('SPpred + DYpred -> bool)),((Pconfig_plus (Pro',i',Re',NRe')):sapic_plus_position_configuration_t)) =
                                                            (case Ev of
                                                               SOME (INR (INL (Alias (x,y)))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INL (Alias (x,y)))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      |  SOME (INR (INL (Ded p))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INL (Ded p))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))                                                                                                       
      | SOME (INR (INR (A2P x))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (A2P x))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INL (INR (A2P x))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (A2P x))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
+     | SOME (INR (INR (Crypto V))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (Crypto V))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
+     | SOME (INL (INR (Crypto V))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (Crypto V))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INR (INR (P2A Y))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (P2A Y))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INL (INR (P2A Y))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (P2A Y))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | SOME (INR (INR (Sync_Fr N))) => ((DYtranrel (Sym,IMAGE OUTR P,ESt) (SOME (INR (Sync_Fr N))) (Sym',IMAGE OUTR P',ESt)) ∧ (IMAGE OUTL P' = IMAGE OUTL P) ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))

@@ -18,12 +18,12 @@ val _ = new_theory "sbir_sapic_comp_DY";
 val comptraces_sapic_def =
 Define`
       comptraces_sapic
-      ((MTrn1:(SapicFact_t + (Name_t,Var_t) sync_event, 'SPpred, sapic_position_configuration_t, Var_t) mtrel),(Ded1:('SPpred) tded))
-      ((MTrn2:(DYnsyc_event + (Name_t,Var_t) sync_event, DYpred, DYstate, Var_t) mtrel),(Ded2:(DYpred) tded))
+      ((MTrn1:(SapicFact_t + (Name_t,Sig_t,Var_t) sync_event, 'SPpred, sapic_position_configuration_t, Var_t) mtrel),(Ded1:('SPpred) tded))
+      ((MTrn2:(DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event, DYpred, DYstate, Var_t) mtrel),(Ded2:(DYpred) tded))
       ((Sym:Var_t set),(P: ('SPpred + DYpred) set),(S1: sapic_position_configuration_t),(S2: DYstate))
       ((Sym':Var_t set),(P': ('SPpred + DYpred) set),(S1': sapic_position_configuration_t),(S2': DYstate))
 =
-{(t:((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)) option list)|  
+{(t:((SapicFact_t + (Name_t,Sig_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)) option list)|  
  (symbolicParlComp (MTrn1,Ded1) (MTrn2,Ded2) (Sym,P,S1,S2) t (Sym',P',S1',S2'))
 }
 `;
@@ -31,12 +31,12 @@ Define`
 val comptraces_tree_def =
 Define`
       comptraces_tree
-      ((MTrn1:((sbir_event + (Name_t, Var_t) sync_event), 'SPpred, (sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree, Var_t) mtrel),(Ded1:('SPpred) tded))
-      ((MTrn2:(DYnsyc_event + (Name_t,Var_t) sync_event, DYpred, DYstate, Var_t) mtrel),(Ded2:(DYpred) tded))
+      ((MTrn1:((sbir_event + (Name_t, Sig_t,Var_t) sync_event), 'SPpred, (sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree, Var_t) mtrel),(Ded1:('SPpred) tded))
+      ((MTrn2:(DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event, DYpred, DYstate, Var_t) mtrel),(Ded2:(DYpred) tded))
       ((Sym:Var_t set),(P: ('SPpred + DYpred) set),(S1: (sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree),(S2: DYstate))
       ((Sym':Var_t set),(P': ('SPpred + DYpred) set),(S1': (sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree),(S2': DYstate))
 =
-{(t: (((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event) option list))|  
+{(t: (((sbir_event + (Name_t,Sig_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event) option list))|  
  (symbolicParlComp (MTrn1,Ded1) (MTrn2,Ded2) (Sym,P,S1,S2) t (Sym',P',S1',S2'))
 }
 `;
@@ -46,8 +46,8 @@ Define`
       sbirEvent_vs_Sync_to_sapicFact_vs_Sync Ev =
 ( case Ev of
     NONE => NONE
-  | SOME ((INL e):(sbir_event + (Name_t, Var_t) sync_event)) => SOME ((INL (sbirEvent_to_sapicFact e)):(SapicFact_t + (Name_t,Var_t) sync_event))
-  | SOME ((INR e):(sbir_event + (Name_t, Var_t) sync_event)) => SOME ((INR e):(SapicFact_t + (Name_t,Var_t) sync_event))
+  | SOME ((INL e):(sbir_event + (Name_t,Sig_t, Var_t) sync_event)) => SOME ((INL (sbirEvent_to_sapicFact e)):(SapicFact_t + (Name_t,Sig_t,Var_t) sync_event))
+  | SOME ((INR e):(sbir_event + (Name_t,Sig_t, Var_t) sync_event)) => SOME ((INR e):(SapicFact_t + (Name_t,Sig_t,Var_t) sync_event))
 )
 `;
 
@@ -56,10 +56,10 @@ Define`
       sbirEvent_vs_DY_to_sapicFact_vs_DY Ev =
 ( case Ev of
     NONE => NONE
-  | SOME ((INL (INL e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) => SOME ((INL (INL (sbirEvent_to_sapicFact e))):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
-  | SOME ((INL (INR e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) => SOME ((INL (INR e)):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
-  | SOME ((INR (INL e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) => SOME ((INR (INL e)):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
-  | SOME ((INR (INR e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) => SOME ((INR (INR e)):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
+  | SOME ((INL (INL e)):((sbir_event + (Name_t, Sig_t,Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)) => SOME ((INL (INL (sbirEvent_to_sapicFact e))):((SapicFact_t + (Name_t,Sig_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)))
+  | SOME ((INL (INR e)):((sbir_event + (Name_t, Sig_t,Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)) => SOME ((INL (INR e)):((SapicFact_t + (Name_t,Sig_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)))
+  | SOME ((INR (INL e)):((sbir_event + (Name_t, Sig_t,Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)) => SOME ((INR (INL e)):((SapicFact_t + (Name_t,Sig_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)))
+  | SOME ((INR (INR e)):((sbir_event + (Name_t, Sig_t,Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)) => SOME ((INR (INR e)):((SapicFact_t + (Name_t,Sig_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t,Var_t) sync_event)))
 )
 `;
 
@@ -81,7 +81,7 @@ val binterl_sbir_to_sapic_thm = store_thm(
      rpt strip_tac >>
      IMP_RES_TAC binterl_NotEmpty >>
      rw[] >>
-     PAT_X_ASSUM ``!t1 t2. A`` (ASSUME_TAC o (Q.SPECL [‘(t1':(sbir_event + (Name_t, Var_t) sync_event) option list)’,‘(t2':(DYnsyc_event + (Name_t, Var_t) sync_event) option list)’])) >>
+     PAT_X_ASSUM ``!t1 t2. A`` (ASSUME_TAC o (Q.SPECL [‘(t1':(sbir_event + (Name_t,Sig_t, Var_t) sync_event) option list)’,‘(t2':(DYnsyc_event + (Name_t, Sig_t,Var_t) sync_event) option list)’])) >>
      IMP_RES_TAC binterl_Conj >>
      RES_TAC >>
      Cases_on ‘h’ >-(

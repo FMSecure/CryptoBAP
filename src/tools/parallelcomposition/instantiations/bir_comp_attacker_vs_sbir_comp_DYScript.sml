@@ -33,14 +33,14 @@ val att_traces_def = Define `
 `;
     
 val sbir_traces_thm =
-INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred`` |-> ``:'SPpred``,``:'state`` |-> ``:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree``,``:'event`` |-> ``:(sbir_event + (Name_t, Var_t) sync_event)``] derived_rules_deductionTheory.traces_def;
+INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred`` |-> ``:'SPpred``,``:'state`` |-> ``:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree``,``:'event`` |-> ``:(sbir_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_deductionTheory.traces_def;
 val sbir_traces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) sbir_traces_thm;
 val sbir_traces_def = Define `
     sbir_traces = ^(sbir_traces_t)
 `;
     
 val DY_traces_thm =
-INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred`` |-> ``:DYpred``,``:'state`` |-> ``:DYstate``,``:'event`` |-> ``:(DYnsyc_event + (Name_t, Var_t) sync_event)``] derived_rules_deductionTheory.traces_def;
+INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred`` |-> ``:DYpred``,``:'state`` |-> ``:DYstate``,``:'event`` |-> ``:(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_deductionTheory.traces_def;
 val DY_traces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) DY_traces_thm;
 val DY_traces_def = Define `
     DY_traces = ^(DY_traces_t)
@@ -54,7 +54,7 @@ val bir_att_comptraces_def = Define `
 `;
 
 val sbir_DY_comptraces_thm =
-INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:'SPpred``,``:'state1`` |-> ``:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree``,``:'event1`` |-> ``:sbir_event``,``:'pred2`` |-> ``:DYpred``,``:'state2`` |-> ``:DYstate``,``:'event2`` |-> ``:DYnsyc_event``,``:'eventS`` |-> ``:(Name_t, Var_t) sync_event``] derived_rules_deductionTheory.comptraces_def;
+INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:'SPpred``,``:'state1`` |-> ``:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree``,``:'event1`` |-> ``:sbir_event``,``:'pred2`` |-> ``:DYpred``,``:'state2`` |-> ``:DYstate``,``:'event2`` |-> ``:DYnsyc_event``,``:'eventS`` |-> ``:(Name_t, Sig_t, Var_t) sync_event``] derived_rules_deductionTheory.comptraces_def;
 val sbir_DY_comptraces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) sbir_DY_comptraces_thm;
 val sbir_DY_comptraces_def = Define `
     sbir_DY_comptraces = ^(sbir_DY_comptraces_t)
@@ -82,12 +82,12 @@ val compose_bir_attacker_vs_sbir_DY_thm = store_thm(
 rewrite_tac[interleavingconcreteTheory.binterleave_composition_concrete,binterleave_composition_deduction,interleavingconcreteTheory.binterleave_ts,interleavingdeductionTheory.binterleave_ts,derived_rules_deductionTheory.traces_def,interleavingconcreteTheory.traces_def,sbir_DY_comptraces_def,bir_att_comptraces_def,DY_traces_def,sbir_traces_def,att_traces_def,bir_traces_def]>>
   FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [subset_one_def,subset_two_def,subset_comp_def]>>
   rw[] >>
-  PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvTwoSyn:('attevent + 'ceventS) list -> (DYnsyc_event + (Name_t, Var_t) sync_event) option list) (t2:(('attevent+'ceventS) list)))`]))>>
-  PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvOneSyn:('cevent + 'ceventS) list -> (sbir_event + (Name_t, Var_t) sync_event) option list) (t1:(('cevent + 'ceventS) list)))`]))>>
+  PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvTwoSyn:('attevent + 'ceventS) list -> (DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event) option list) (t2:(('attevent+'ceventS) list)))`]))>>
+  PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvOneSyn:('cevent + 'ceventS) list -> (sbir_event + (Name_t, Sig_t, Var_t) sync_event) option list) (t1:(('cevent + 'ceventS) list)))`]))>>
   FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [applyfunEvOneSyn,applyfunEvTwoSyn]>>            
   RES_TAC>>
-  Q.EXISTS_TAC `((RevInterpretEvOneSyn:('cevent + 'ceventS) list -> (sbir_event + (Name_t, Var_t) sync_event) option list) t1)` >>
-  Q.EXISTS_TAC `((RevInterpretEvTwoSyn:('attevent + 'ceventS) list -> (DYnsyc_event + (Name_t, Var_t) sync_event) option list) t2)` >>
+  Q.EXISTS_TAC `((RevInterpretEvOneSyn:('cevent + 'ceventS) list -> (sbir_event + (Name_t, Sig_t, Var_t) sync_event) option list) t1)` >>
+  Q.EXISTS_TAC `((RevInterpretEvTwoSyn:('attevent + 'ceventS) list -> (DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event) option list) t2)` >>
   metis_tac[binterl_Rev]
 );
 

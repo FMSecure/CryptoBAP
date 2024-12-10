@@ -129,8 +129,8 @@ val symbolic_tree_transition_with_symb_def =
 Define `symbolic_tree_transition_with_symb (Sym,P,tre) Eve (Sym',P',tre') =
 (case Eve of
    NONE => ((Sym = Sym') ∧ (P = P') ∧ (tre = tre'))
- | SOME ((INL e):(sbir_event + (Name_t, Var_t) sync_event)) => (single_step_execute_symbolic_tree tre e tre')
- | SOME ((INR e):(sbir_event + (Name_t, Var_t) sync_event)) => ((Sym = Sym') ∧ (P = P') ∧ (tre = tre'))
+ | SOME ((INL e):(sbir_event + (Name_t, Sig_t, Var_t) sync_event)) => (single_step_execute_symbolic_tree tre e tre')
+ | SOME ((INR e):(sbir_event + (Name_t, Sig_t, Var_t) sync_event)) => ((Sym = Sym') ∧ (P = P') ∧ (tre = tre'))
 )
 `;        
 

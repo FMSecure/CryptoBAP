@@ -234,14 +234,14 @@ val two_birs_att_comptraces_def = Define `
 
 
 val two_sbirs_DY_comptraces_thm =
-INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:('SPpred + DYpred)``,``:'state1`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event1`` |-> ``:(sbir_event + (Name_t, Var_t) sync_event)``,``:'pred2`` |-> ``:('SPpred + DYpred)``,``:'state2`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event2`` |-> ``:(sbir_event + (Name_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Var_t) sync_event)``] derived_rules_deductionTheory.comptraces_def;
+INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:('SPpred + DYpred)``,``:'state1`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event1`` |-> ``:(sbir_event + (Name_t, Sig_t, Var_t) sync_event)``,``:'pred2`` |-> ``:('SPpred + DYpred)``,``:'state2`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event2`` |-> ``:(sbir_event + (Name_t, Sig_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_deductionTheory.comptraces_def;
 val two_sbirs_DY_comptraces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) two_sbirs_DY_comptraces_thm;
 val two_sbirs_DY_comptraces_def = Define `
     two_sbirs_DY_comptraces = ^(two_sbirs_DY_comptraces_t)
                                `;
 
 val two_sapics_DY_comptraces_thm =
-INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:('SPpred + DYpred)``,``:'state1`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event1`` |-> ``:(SapicFact_t + (Name_t, Var_t) sync_event)``,``:'pred2`` |-> ``:('SPpred + DYpred)``,``:'state2`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event2`` |-> ``:(SapicFact_t + (Name_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Var_t) sync_event)``] derived_rules_deductionTheory.comptraces_def;
+INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:('SPpred + DYpred)``,``:'state1`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event1`` |-> ``:(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event)``,``:'pred2`` |-> ``:('SPpred + DYpred)``,``:'state2`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event2`` |-> ``:(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_deductionTheory.comptraces_def;
 val two_sapics_DY_comptraces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) two_sapics_DY_comptraces_thm;
 val two_sapics_DY_comptraces_def = Define `
     two_sapics_DY_comptraces = ^(two_sapics_DY_comptraces_t)
@@ -252,10 +252,10 @@ val sbirEvent_vs_DY_to_sapicFact_vs_DY_no_option_def =
 Define `
        sbirEvent_vs_DY_to_sapicFact_vs_DY_no_option Ev =
 ( case Ev of
-    ((INL (INL e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) =>  ((INL (INL (sbirEvent_to_sapicFact e))):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
-  |  ((INL (INR e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) =>  ((INL (INR e)):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
-  |  ((INR (INL e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) =>  ((INR (INL e)):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
-  |  ((INR (INR e)):((sbir_event + (Name_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Var_t) sync_event)) =>  ((INR (INR e)):((SapicFact_t + (Name_t,Var_t) sync_event)+(DYnsyc_event + (Name_t,Var_t) sync_event)))
+    ((INL (INL e)):((sbir_event + (Name_t, Sig_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)) =>  ((INL (INL (sbirEvent_to_sapicFact e))):((SapicFact_t + (Name_t,Sig_t, Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)))
+  |  ((INL (INR e)):((sbir_event + (Name_t, Sig_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)) =>  ((INL (INR e)):((SapicFact_t + (Name_t,Sig_t, Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)))
+  |  ((INR (INL e)):((sbir_event + (Name_t, Sig_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)) =>  ((INR (INL e)):((SapicFact_t + (Name_t,Sig_t, Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)))
+  |  ((INR (INR e)):((sbir_event + (Name_t, Sig_t, Var_t) sync_event) + DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)) =>  ((INR (INR e)):((SapicFact_t + (Name_t,Sig_t, Var_t) sync_event)+(DYnsyc_event + (Name_t,Sig_t, Var_t) sync_event)))
 )
 `;
         

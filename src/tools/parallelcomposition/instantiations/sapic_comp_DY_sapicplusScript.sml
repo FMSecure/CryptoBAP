@@ -82,8 +82,7 @@ val spaicplus_to_sapic_vs_DY_single_transition_thm = store_thm(
                   metis_tac[binterl_moveALN,binterl_nil]
                   ) >> 
                 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[SapicTerm_t_distinct,SapicTerm_t_case_def]
-                )
->- (
+                ) >- (
                 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[FactTag_t_distinct,FactTag_t_case_def]
                 ) >- (
                 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[FactTag_t_distinct,FactTag_t_case_def]
@@ -187,6 +186,15 @@ val spaicplus_to_sapic_vs_DY_single_transition_thm = store_thm(
             ) >- (
             rw[sapic_plus_position_transition_with_symb_def] >>
             Q.EXISTS_TAC `NONE` >>
+            Q.EXISTS_TAC `(SOME (INR (Crypto p)))` >>
+            Cases_on `p` >>
+            Cases_on `r` >>
+            IMP_RES_TAC DYtranrel_def >>
+            rw[sapic_position_transition_with_symb_def,DYtranrel_def] >>
+            metis_tac[binterl_moveSLN,binterl_nil]
+            ) >- (
+            rw[sapic_plus_position_transition_with_symb_def] >>
+            Q.EXISTS_TAC `NONE` >>
             Q.EXISTS_TAC `(SOME (INR (Sync_Fr n)))` >>
             IMP_RES_TAC DYtranrel_def >>
             rw[sapic_position_transition_with_symb_def,DYtranrel_def] >>
@@ -233,6 +241,15 @@ val spaicplus_to_sapic_vs_DY_single_transition_thm = store_thm(
             rw[sapic_plus_position_transition_with_symb_def] >>
             Q.EXISTS_TAC `NONE` >>
             Q.EXISTS_TAC `(SOME (INR (A2P v)))` >>
+            IMP_RES_TAC DYtranrel_def >>
+            rw[sapic_position_transition_with_symb_def,DYtranrel_def] >>
+            metis_tac[binterl_moveSRN,binterl_nil]
+            ) >- (
+            rw[sapic_plus_position_transition_with_symb_def] >>
+            Q.EXISTS_TAC `NONE` >>
+            Q.EXISTS_TAC `(SOME (INR (Crypto p)))` >>
+            Cases_on `p` >>
+            Cases_on `r` >>
             IMP_RES_TAC DYtranrel_def >>
             rw[sapic_position_transition_with_symb_def,DYtranrel_def] >>
             metis_tac[binterl_moveSRN,binterl_nil]
@@ -398,7 +415,14 @@ val sapic_vs_DY_to_spaicplus_single_transition_thm = store_thm(
         IMP_RES_TAC sapic_position_transition_with_symb_def >>
         IMP_RES_TAC DYtranrel_def >>
         rw[sapic_plus_position_transition_with_symb_def]
-        )(*A2P*) >>
+        )(*A2P*) >- (
+        rpt strip_tac >>
+        IMP_RES_TAC binterl_moveSL >>
+        rw[] >>
+        IMP_RES_TAC sapic_position_transition_with_symb_def >>
+        IMP_RES_TAC DYtranrel_def >>
+        rw[sapic_plus_position_transition_with_symb_def]
+        )(*Crypto*) >>
       rpt strip_tac >>
       IMP_RES_TAC binterl_moveSL >>
       rw[] >>
