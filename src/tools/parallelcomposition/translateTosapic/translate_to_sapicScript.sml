@@ -131,7 +131,7 @@ sbirEvent_to_sapicFact e =
 | Event v   => (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v))])
 | Crypto v  => (Fact DedFact [(translate_birexp_to_sapicterm (BExp_Den v))])
 | Loop v    => (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v))])
-| Branch v  => (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v))])
+| Branch (v,e)  => (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v));(translate_birexp_to_sapicterm e)])
 | Silent    => (Fact TermFact [])
         )
   `;
@@ -148,8 +148,8 @@ val symbtree_to_sapic_def = Define`
 (symbtree_to_sapic (SNode ((P2A v),i,H) st) = (ProcessAction (ChOut (SOME (TVar (Var "Channel" 0))) (translate_birexp_to_sapicterm (BExp_Den v))) (symbtree_to_sapic st))) /\
 (symbtree_to_sapic (SNode ((A2P v),i,H) st) = (ProcessAction (ChIn (SOME (TVar (Var "Channel" 0))) (TVar (translate_birvar_to_sapicvar v))) (symbtree_to_sapic st))) /\
 (symbtree_to_sapic (SNode ((Sync_Fr v),i,H) st) = (ProcessAction (New (translate_birvar_to_sapicfreshname v)) (symbtree_to_sapic st)))/\
-(symbtree_to_sapic (SBranch (Branch v,i,H) lst rst) =
-(ProcessComb (Cond (translate_birexp_to_sapicterm (BExp_Den v))) (symbtree_to_sapic lst) (symbtree_to_sapic rst))) /\
+(symbtree_to_sapic (SBranch (Branch (v,e),i,H) lst rst) =
+(ProcessComb (CondEq (translate_birexp_to_sapicterm (BExp_Den v)) (translate_birexp_to_sapicterm e)) (symbtree_to_sapic lst) (symbtree_to_sapic rst))) /\
 (symbtree_to_sapic _ = ProcessNull)`;
 
 
@@ -188,7 +188,7 @@ val symbtree_to_sapic_single_step_simulation_thm = store_thm(
         (((single_step_execute_symbolic_tree Tree E Tree' ) ∧ (sim Tree (Pconfig (Pro,i,Re,NRe))))
          ⇒ (∃Pro' i' Re' NRe' Ev. (sim Tree' (Pconfig (Pro',i',Re',NRe'))) ∧ (sapic_position_transition (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'))) ∧ (Ev = sbirEvent_to_sapicFact E)))``,                                                                                                               
 gen_tac >>
-  Cases_on ‘E'’ >- (
+  Cases_on ‘E’ >- (
     rewrite_tac[sbirEvent_to_sapicFact_def] >>
 rw[single_step_execute_symbolic_tree_def]>>
 IMP_RES_TAC sim_def>>
@@ -351,9 +351,10 @@ ASM_SIMP_TAC (srw_ss()) []
 )
 (*end of Loop*)      
   >-(
+    Cases_on ‘p’ >>
     rewrite_tac[sbirEvent_to_sapicFact_def] >>
-rw[single_step_execute_symbolic_tree_def]
->-(
+    rw[single_step_execute_symbolic_tree_def]
+    >-(
 IMP_RES_TAC sim_def>>
 ASM_SIMP_TAC (srw_ss()) [symbtree_to_sapic_def,position_in_tree_def] >>
 ASM_SIMP_TAC (srw_ss()) [sapic_position_transition_def]>>
@@ -365,10 +366,12 @@ Q.EXISTS_TAC `NRe` >>
 rw[sim_def] >-(
 IMP_RES_TAC position_of_val_thm>>
 ASM_SIMP_TAC (srw_ss()) []
-)>>
+)>- (
 IMP_RES_TAC env_of_val_thm>>
 rewrite_tac[env_of_tree_def]>>
 ASM_SIMP_TAC (srw_ss()) []
+        ) >>
+        (*one case need to be proven*)
 )
 >-(
 IMP_RES_TAC sim_def>>
