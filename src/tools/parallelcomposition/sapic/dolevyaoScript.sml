@@ -13,7 +13,7 @@ K SapicTerm_t (* Adversary can deduce term *)
 | Equ (SapicTerm_t # SapicTerm_t) (* both terms *)
       `;
     
-val _ = Theory.new_constant("E", ``:SapicTerm_t -> SapicTerm_t -> bool``);
+val _ = Theory.new_constant("eqE", ``:SapicTerm_t -> SapicTerm_t -> bool``);
       
 (* Dolev-Yao deduction relation *)
 val (DYdeduction_rules, DYdeduction_ind, DYdeduction_cases)
@@ -23,7 +23,7 @@ val (DYdeduction_rules, DYdeduction_ind, DYdeduction_cases)
 (∀(sig:(string # (int # Privacy_t # Constructability_t))) (tl:SapicTerm_t list) (Pi: DYpred set). (EVERY (DYdeduction Pi) (MAP K tl)) ==> (DYdeduction Pi (K (FAPP sig tl)))) ∧
 (∀(t1:SapicTerm_t) (t2:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (K t1)) ∧ (DYdeduction Pi (Equ (t1,t2)))) ==> (DYdeduction Pi (K t2))) ∧
 (∀(n1:SapicTerm_t) (n2:SapicTerm_t) (Pi: DYpred set). ((DYdeduction Pi (Fr n1)) ∧ (DYdeduction Pi (Equ (n1,n2)))) ==> (DYdeduction Pi (Fr n2))) ∧
-(∀(t1:SapicTerm_t) (t2:SapicTerm_t) (Pi: DYpred set). (E t1 t2) ==> (DYdeduction Pi (Equ (t1,t2)))) 
+(∀(t1:SapicTerm_t) (t2:SapicTerm_t) (Pi: DYpred set). (eqE t1 t2) ==> (DYdeduction Pi (Equ (t1,t2)))) 
 `;
 
 (* Dolev-Yao non-synchronous events *)        

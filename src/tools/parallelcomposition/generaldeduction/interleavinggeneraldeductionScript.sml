@@ -81,9 +81,13 @@ val binterl_moveAR = new_axiom ("binterl_moveAR",
                                      binterl t1 t2 (SOME (INR (INL e2))::t) ⇒
                                   (∃t2'. (t2 = SOME (INL e2)::t2'))``);                                  
  
-val OUTL_disjUNION_thm = new_axiom("OUTL_disjUNION", ``∀ A B. IMAGE OUTL (A ⊔ B) = A``);
+val OUTR_INL_FUN_thm = new_axiom("OUTR_INL_FUN", ``         
+∀x n.
+ OUTR (INL x) = n x``);
 
-val OUTR_disjUNION_thm = new_axiom("OUTR_disjUNION", ``∀ A B. IMAGE OUTR (A ⊔ B) = B``);
+val OUTL_INR_FUN_thm = new_axiom("OUTL_INR_FUN", ``      
+∀x n.
+ OUTL (INR x) = n x``);
 
 val TranRelNil = new_axiom ("TranRelNil",
                             ``∀(MTrn:('event, 'pred, 'state , 'symb ) mtrel) v p s. MTrn (v,p,s) [] (v,p,s)``);
