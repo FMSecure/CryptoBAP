@@ -23,19 +23,22 @@ Define`
 `;
 
 
-
+val RevDed_def =
+Define `
+       (RevDed (ded:('pred1 + 'pred2) tded) phi p  =  (∀(n: 'pred2 -> 'pred1) (m: 'pred1 -> 'pred2). ded (IMAGE (SUM_MAP n m) phi) ((SUM_MAP n m) p))
+       )`;
                
 val symmetry_generaldeduction_thm = store_thm(
   " symmetry_generaldeduction",
-  ``∀(t1:('event1 + 'eventS) option list) (t2:('event2 + 'eventS) option list) Sym P1 P2 P1' P2' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
-       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,(P1 ⊔ P2),S1,S2) (MAP SOME (APPEND (MAP (INL o THE) t1) (MAP (INR o THE) t2))) (Sym',(P1' ⊔ P2'),S1',S2'))
+  ``∀t f g Sym P1 P2 P1' P2' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
+       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,(P1 ⊔ P2),S1,S2) t (Sym',(P1' ⊔ P2'),S1',S2'))
      =
-     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(P2 ⊔ P1),S2,S1) (MAP SOME (APPEND (MAP (INL o THE) t2) (MAP (INR o THE) t1))) (Sym',(P2' ⊔ P1'),S2',S1')) ``,
-                                                                                                                                                                      GEN_TAC >>
-     Induct_on `t1` >- (
+     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(P2 ⊔ P1),S2,S1) (MAP (OPTION_MAP (SUM_MAP f g)) t) (Sym',(P2' ⊔ P1'),S2',S1')) 
+
+ ``,
+ GEN_TAC >>
+     Induct_on `t` >- (
       FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[] >>
-      GEN_TAC >>
-      Induct_on `t2` >- (
         rpt strip_tac >>
         EQ_TAC >-(
           FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
@@ -91,11 +94,16 @@ val symmetry_generaldeduction_thm = store_thm(
           FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[OUTL_disjUNION,OUTR_disjUNION] 
           ) >>
         FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[OUTL_disjUNION,OUTR_disjUNION] 
-        )    (* Proved t2 = [] *) >>
+        )    (* Proved t = [] *) >>
       gen_tac >>
       Cases_on `h` >- (
-        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[] >>
-                    
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
+        rpt strip_tac >>
+        EQ_TAC >- (
+        rpt strip_tac >>
+
+
+               )
 
         )
 
@@ -103,6 +111,18 @@ val symmetry_generaldeduction_thm = store_thm(
 
 
                         (*
+
+
+
+rpt strip_tac >>
+      PAT_X_ASSUM ``!phi. A`` (ASSUME_TAC o (Q.SPECL [`phi`])) >>
+      PAT_X_ASSUM ``!Sym P S1 S2 Sym' P' S1' S2' MTrn1 MTrn2 ded1 ded2 ded3. A`` (ASSUME_TAC o (Q.SPECL [`Sym`,`P`,`S1`,`S2`,`Sym'`,`P''`,`S1'`,`S2'`,`MTrn1`,`MTrn2`,`ded1`,`ded2`,`ded3`]))>>
+      RES_TAC >>
+      Q.EXISTS_TAC `t1` >>
+      Q.EXISTS_TAC `t2` >>
+      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]>>
+      metis_tac[TransDisable_def,binterl_combinenone] 
+                        
 
                 
             PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`(INR b)`])) >>
@@ -145,13 +165,32 @@ GSPEC_OR
   )
 
 
-∀(t1:('event1 + 'eventS) option list) (t2:('event2 + 'eventS) option list) Sym P1 P2 P1' P2' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
-       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,(P1 ⊔ P2),S1,S2) (MAP SOME (APPEND (MAP (INL o THE) t1) (MAP (INR o THE) t2))) (Sym',(P1' ⊔ P2'),S1',S2'))
+
+
+val two_sapics_DY_comptraces_thm =
+INST_TYPE [``:'pred1`` |-> ``:'pred2``,``:'pred2`` |-> ``:'pred1``] (ded:('pred1 + 'pred2) tded);
+val two_sapics_DY_comptraces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) two_sapics_DY_comptraces_thm;
+val two_sapics_DY_comptraces_def = Define `
+    two_sapics_DY_comptraces = ^(two_sapics_DY_comptraces_t)
+`;
+
+
+        val RevDed_def =
+Define `
+       (RevDed (ded:('pred1 + 'pred2) tded) phi p  =  (∀(n: 'pred2 -> 'pred1) (m: 'pred1 -> 'pred2). ded (IMAGE (SUM_MAP n m) phi) ((SUM_MAP n m) p))
+)`;
+  
+ ∀(ded:('pred1 + 'pred2) tded) phi (n: 'pred1 -> 'pred2) (m: 'pred2 -> 'pred1) p. ded phi p ⇒ (SUM_REV ded) (IMAGE (SUM_MAP n m) phi) ((SUM_MAP n m) p)
+       
+OPTION_MAP_CASE
+
+∀t f g  n m Sym P P' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
+       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,P,S1,S2) t (Sym',P',S1',S2'))
      =
-     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(P2 ⊔ P1),S2,S1) (MAP SOME (APPEND (MAP (INL o THE) t2) (MAP (INR o THE) t1))) (Sym',(P2' ⊔ P1'),S2',S1')) 
+     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(IMAGE (SUM_MAP n m) P),S2,S1) (MAP (OPTION_MAP (SUM_MAP f g)) t) (Sym',(IMAGE (SUM_MAP n m) P'),S2',S1')) 
 
 
-
+option_case_def
   
 val symmetry_generaldeduction_thm = store_thm(
   " symmetry_generaldeduction",
@@ -193,7 +232,7 @@ val symmetry_generaldeduction_thm = store_thm(
             ) >>
             FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[OUTL_disjUNION,OUTR_disjUNION] 
 
-            *)
+            
   val symmetry_generaldeduction_thm = store_thm(
   " symmetry_generaldeduction",
   ``∀(t1:('event1 + 'eventS) option list) (t2:('event2 + 'eventS) option list) Sym P1 P2 P1' P2' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
@@ -201,7 +240,7 @@ val symmetry_generaldeduction_thm = store_thm(
      =
      (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(P2 ⊔ P1),S2,S1) (MAP SOME (APPEND (MAP (INL o THE) t2) (MAP (INR o THE) t1))) (Sym',(P2' ⊔ P1'),S2',S1'))
      ``,
-
+*)
 val binterleave_trace_comp_to_decomp_generaldeduction_thm = store_thm(
   "binterleave_trace_comp_to_decomp_generaldeduction",
   ``∀t Sym P S1 S2 Sym' P' S1' S2' (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded).
