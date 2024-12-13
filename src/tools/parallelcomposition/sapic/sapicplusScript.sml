@@ -940,9 +940,13 @@ val sapic_plus_position_transition_with_symb_def = Define `
                                                  (case Pro of
                                                     (ProcessAction Rep P) => (sapic_plus_position_replication_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe')))
                                                   | (ProcessAction (Event Fc) P) =>  (sapic_plus_position_event_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe')))
-                                                  | (ProcessComb (CondEq t1 t2) P Q) => ((sapic_plus_position_conditional_true_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))) ∨ (sapic_plus_position_conditional_false_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))))
                                                   | _ => F
-                                                 ))                                                                                  
+                                                 ))
+     | SOME (INL (INL (Fact TermFact [t1;t2])))  => ((IMAGE OUTR P' = IMAGE OUTR P) ∧ (Sym = Sym') ∧
+                                                 (case Pro of
+                                                    (ProcessComb (CondEq t1 t2) P Q) => ((sapic_plus_position_conditional_true_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))) ∨ (sapic_plus_position_conditional_false_transition (Pconfig_plus (Pro,i,Re,NRe)) Ev (Pconfig_plus (Pro',i',Re',NRe'))))
+                                                  | _ => F
+                                                 ))  
      | NONE => ((Sym = Sym') ∧ (P = P') ∧ (Pro = Pro') ∧ (i = i') ∧ (Re = Re') ∧ (NRe = NRe'))
      | _ => F
 )

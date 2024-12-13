@@ -1,4 +1,3 @@
-
 open HolKernel Parse boolLib bossLib;
 open sapicplusTheory;
 open messagesTheory;
@@ -392,8 +391,7 @@ IMP_RES_TAC env_of_val_thm>>
 rewrite_tac[env_of_tree_def]>>
 ASM_SIMP_TAC (srw_ss()) []
         ) >>
-    IMP_RES_TAC translate_birexp_to_sapicterm_def   
-metis_tac[eqE_not] 
+metis_tac[eqE_not,tran_not_eq] 
 ))
 (*end of Branch *)  
   >-(
@@ -426,7 +424,7 @@ val symbtree_to_sapic_trace_simulation_thm = store_thm(
          ⇒ (∃Pro' i' Re' NRe' Ev. (sim Tree' (Pconfig (Pro',i',Re',NRe'))) ∧ (sapic_position_multi_transitions (Pconfig (Pro,i,Re,NRe)) Ev (Pconfig (Pro',i',Re',NRe'))) ∧ (Ev = MAP sbirEvent_to_sapicFact E))) ``,
 
 gen_tac>>
-  Induct_on ‘E'’ >-(
+  Induct_on ‘E’ >-(
     rewrite_tac[sbirEvent_to_sapicFact_def]>>
     rw[execute_symbolic_tree_def]>>
     Q.EXISTS_TAC `Pro` >>
