@@ -207,7 +207,29 @@ fun refine_symb_val_list symbv =
     end;
         
     
+(* Define a function to print a single list *)
+fun printList [] = ()
+  | printList (x::xs) =
+    (print (((fst o bir_envSyntax.dest_BVar_string) x) ^ ","); printList xs);
 
+(* Define a function to print a list of lists *)
+fun printTermList [] = ()
+  | printTermList (lst::rest) =
+    (printList lst; print "\n"; printTermList rest);
+  
+(* Function to remove duplicates while keeping the first occurrence *)
+fun removeDuplicates lst =
+    let
+        fun helper([], _, acc) = List.rev acc
+          | helper(x::xs, seen, acc) =
+                if List.exists (fn y => (((fst o bir_envSyntax.dest_BVar_string) x) = ((fst o bir_envSyntax.dest_BVar_string) y))) seen then
+                    helper(xs, seen, acc)
+                else
+                    helper(xs, x::seen, x::acc)
+    in
+        helper(lst, [], [])
+    end;
+    
 end(*local*)
 
 end (* struct *) 

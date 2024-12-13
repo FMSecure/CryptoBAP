@@ -49,7 +49,7 @@ fun read_events pred =
 fun sbir_tree_sapic_process tree =
     case tree of
 	VLeaf => ProcessNull_tm
-      | VBranch ((a,b),lstr,rstr)  => mk_ProcessComb ((mk_Cond (fst(bir_exp_to_sapic_term b))),(sbir_tree_sapic_process lstr),(sbir_tree_sapic_process rstr))
+      | VBranch ((a,b),lstr,rstr)  => mk_ProcessComb (NDC_tm,(sbir_tree_sapic_process lstr),(sbir_tree_sapic_process rstr))
       | VNode ((a,b),str)  =>  (
 	let
 	    val (name,bir_type) = dest_BVar a;

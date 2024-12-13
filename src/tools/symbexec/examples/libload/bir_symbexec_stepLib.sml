@@ -29,7 +29,10 @@ local
       let
         val (cnd, be1, be2) = bir_expSyntax.dest_BExp_IfThenElse be;
       in
-        state_branch "assign"
+	  if (bir_bool_expSyntax.is_bir_exp_true cnd) then [state_assign_bv bv be1 syst]
+	  else if (bir_bool_expSyntax.is_bir_exp_false cnd) then [state_assign_bv bv be2 syst]
+	  else
+	      state_branch "assign"
                      cnd
                      (state_exec_assign (bv, be1))
                      (state_exec_assign (bv, be2))
@@ -129,13 +132,23 @@ local
       val cnd     = fst (List.nth (vs, 0));
       val tgt1    = fst (List.nth (vs, 1));
       val tgt2    = fst (List.nth (vs, 2));
+      val be      = if (is_BExp_Den cnd) then (bir_symbexec_funcLib.symbval_bexp (bir_symbexec_stateLib.get_state_symbv "CJmp" (dest_BExp_Den cnd) syst)) else cnd;
+
+      (* val _ = print "\n Be : "; *)
+      (* val _ = print (term_to_string be); *)
+      (* val _ = print "\n Cnd : ";	 *)
+      (* val _ = print (term_to_string cnd); *)
+      (* val _ = print "\n"; *)
     in
-      state_branch_simp
-         "cjmp"
-         cnd
-         (SYST_update_pc tgt1)
-         (SYST_update_pc tgt2)
-         syst
+	if ((bir_bool_expSyntax.is_bir_exp_true cnd) orelse (bir_bool_expSyntax.is_bir_exp_true be)) then [SYST_update_pc tgt1 syst]
+	else if ((bir_bool_expSyntax.is_bir_exp_false cnd) orelse (bir_bool_expSyntax.is_bir_exp_false be)) then [SYST_update_pc tgt2 syst]
+	else
+	    state_branch_simp
+		"cjmp"
+		cnd
+		(SYST_update_pc tgt1)
+		(SYST_update_pc tgt2)
+		syst
     end
     )
       handle HOL_ERR _ => NONE;
@@ -284,8 +297,10 @@ fun symb_exec_adversary_block abpfun n_dict bl_dict syst =
 (* handle library code *)
 fun symb_exec_library_block abpfun n_dict bl_dict adr_dict syst =
     let val lbl_tm = SYST_get_pc syst; in
-	    let
-		val bl = (valOf o (lookup_block_dict bl_dict)) lbl_tm;
+	let
+	    val _ = if true then () else
+		    print_term (lbl_tm);
+	    val bl = (valOf o (lookup_block_dict bl_dict)) lbl_tm;
 
 		val (lbl_block_tm, bl_stmts, est) = dest_bir_block bl;
 
@@ -298,6 +313,7 @@ fun symb_exec_library_block abpfun n_dict bl_dict adr_dict syst =
 		val lib_type = bir_symbexec_oracleLib.lib_oracle adr_dict lbl_tm syst; (* detect type of library call *)
 
 		val _ = if true then () else
+			if (lib_type = "C_Lib") then () else
 			print ("Lib type: " ^ (lib_type) ^ "\n");
 
 (* For WireGuard case-study *)
@@ -363,7 +379,10 @@ fun symb_exec_library_block abpfun n_dict bl_dict adr_dict syst =
 				in
 				    (List.map (fn x => SYST_update_pc tgt x) systs)(* update symb_state  with new pc *)
 				end;
-		    
+		    val debugOn = false;
+	     val _ = if not debugOn then () else
+		     (print_term bl; print "\n ==================== \n\n");
+
 		val systs_processed = abpfun systs; 
 	    in
 		systs_processed
@@ -373,7 +392,9 @@ fun symb_exec_library_block abpfun n_dict bl_dict adr_dict syst =
 (* function for run a normal symbolic execution block *)
 fun symb_exec_normal_block abpfun n_dict bl_dict syst =
 	let val lbl_tm = SYST_get_pc syst; in
-	 let  
+	    let
+		val _ = if true then () else
+			print_term (lbl_tm);
 	     val bl = (valOf o (lookup_block_dict bl_dict)) lbl_tm;
 	     val (lbl_block_tm, stmts, est) = dest_bir_block bl;
 
@@ -479,8 +500,14 @@ fun symb_exec_loop_block abpfun n_dict bl_dict adr_dict syst =
 			       val syst = state_exec_loop_true bl_dict syst;
 				   
 			       val syst = SYST_update_status BST_InLoop_tm syst;
+
+			       val pc_type = bir_symbexec_oracleLib.fun_oracle adr_dict (SYST_get_pc syst) syst;
 				   
-			       val systs_processed = symb_exec_normal_block abpfun n_dict bl_dict syst;
+			       val systs_processed =  if (pc_type = "Adversary") then symb_exec_adversary_block abpfun n_dict bl_dict syst
+						      else if (pc_type = "Library") then symb_exec_library_block abpfun n_dict bl_dict adr_dict syst
+						      else if (pc_type = "Loop") then symb_exec_loop_block abpfun n_dict bl_dict adr_dict syst
+						      else symb_exec_normal_block abpfun n_dict bl_dict syst;
+
 			   in
 			       systs_processed
 			   end
@@ -494,19 +521,19 @@ fun symb_exec_loop_block abpfun n_dict bl_dict adr_dict syst =
 (* execution of a whole block *)
     fun symb_exec_block abpfun n_dict bl_dict adr_dict syst =
 	let val lbl_tm = SYST_get_pc syst; in
-	    let
-		val pc_type = bir_symbexec_oracleLib.fun_oracle adr_dict lbl_tm syst;
+		let
+		    val pc_type = bir_symbexec_oracleLib.fun_oracle adr_dict lbl_tm syst;
 
-		val _ = if true then () else
-			print_term (lbl_tm);
-		val _ = if true then () else
-			print ("pc_type: " ^ (pc_type) ^ "\n");
-	    in
-		if (pc_type = "Adversary") then symb_exec_adversary_block abpfun n_dict bl_dict syst
-		else if (pc_type = "Library") then symb_exec_library_block abpfun n_dict bl_dict adr_dict syst
-		else if (pc_type = "Loop") then symb_exec_loop_block abpfun n_dict bl_dict adr_dict syst
-		else symb_exec_normal_block abpfun n_dict bl_dict syst
-	    end
+		    val _ = if true then () else
+			    print_term (lbl_tm);
+		    val _ = if true then () else
+			    print ("pc_type: " ^ (pc_type) ^ "\n");
+		in
+		    if (pc_type = "Adversary") then symb_exec_adversary_block abpfun n_dict bl_dict syst
+		    else if (pc_type = "Library") then symb_exec_library_block abpfun n_dict bl_dict adr_dict syst
+		    else if (pc_type = "Loop") then symb_exec_loop_block abpfun n_dict bl_dict adr_dict syst
+		    else symb_exec_normal_block abpfun n_dict bl_dict syst
+		end
 	    handle e => raise wrap_exn ("symb_exec_block::" ^ term_to_string lbl_tm) e end;
 
   (* execution of blocks until not running anymore or end label set is reached *)
@@ -548,4 +575,3 @@ end (* local *)
 end (* outermost local *)
 
 end (* struct *)
-

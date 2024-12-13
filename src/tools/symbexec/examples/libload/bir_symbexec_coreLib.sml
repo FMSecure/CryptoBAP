@@ -216,11 +216,37 @@ fun abstract_exp_in_loop exp =
       else
         raise (ERR "abstract_exp_in_loop" ("don't know BIR expression: \"" ^ (term_to_string exp) ^ "\""));	
 
-
 (* primitive to compute expression and store result using fresh variable *)
   fun state_insert_symbval_from_be bv_fr be syst =
       insert_symbval bv_fr (compute_valbe be syst) syst;
 
+      
+(* primitives for adding conjuncts to the path predicate *)
+  fun state_add_pred bv_str pred syst =
+    let
+      val bv = bir_envSyntax.mk_BVar_string (bv_str, bir_valuesSyntax.BType_Bool_tm);
+      val bv_fresh = get_bvar_fresh bv;
+    in
+      (SYST_update_pred ((bv_fresh)::(SYST_get_pred syst)) o
+       state_insert_symbval_from_be bv_fresh pred
+      ) syst
+    end;
+      
+(* primitives for adding conjuncts to the path predicate for assign *)
+  fun state_add_pred_fr use_expo_var bv_fr symbv syst =
+      if ((identical bir_valuesSyntax.BType_Bool_tm ((snd o bir_envSyntax.dest_BVar_string) bv_fr)) orelse use_expo_var)
+      then (SYST_update_pred ((bv_fr)::(SYST_get_pred syst)) syst)
+      else
+	  let
+	      val bv_str = (fst o bir_envSyntax.dest_BVar_string) bv_fr
+	      val bv = bir_envSyntax.mk_BVar_string (bv_str, bir_valuesSyntax.BType_Bool_tm);
+	  in
+	      ((SYST_update_pred ((bv)::(SYST_get_pred syst)) o
+		insert_symbval bv symbv
+	       ) syst)
+	  end;
+
+      
 (* primitive to carry out assignment *)
   fun state_assign_bv bv be syst =
     let
@@ -257,7 +283,9 @@ fun abstract_exp_in_loop exp =
       val _ = case symbv' of
                   SymbValBE (x, t) => (if ((is_state_inloop syst) andalso false) then print (term_to_string x ^ "\n\n") else ())
                 | _ => ();
-	  
+
+      val syst = state_add_pred_fr use_expo_var bv_fr symbv' syst;
+
     in
       (update_envvar bv bv_fr o
        (if use_expo_var then
@@ -324,16 +352,6 @@ fun abstract_exp_in_loop exp =
       ) syst
     end;
 
-(* primitives for adding conjuncts to the path predicate *)
-  fun state_add_pred bv_str pred syst =
-    let
-      val bv = bir_envSyntax.mk_BVar_string (bv_str, bir_valuesSyntax.BType_Bool_tm);
-      val bv_fresh = get_bvar_fresh bv;
-    in
-      (SYST_update_pred ((bv_fresh)::(SYST_get_pred syst)) o
-       state_insert_symbval_from_be bv_fresh pred
-      ) syst
-    end;
 
   fun state_add_preds bv_str preds syst =
     List.foldr (fn (pred, syst_) => state_add_pred bv_str pred syst_) syst preds;
