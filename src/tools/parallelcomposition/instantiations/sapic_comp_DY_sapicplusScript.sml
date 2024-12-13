@@ -122,7 +122,18 @@ val spaicplus_to_sapic_vs_DY_single_transition_thm = store_thm(
                   rw[sapic_position_transition_with_symb_def,sapic_position_transition_def,sapic_position_ndc_transition_def,DYtranrel_def] >>
                   metis_tac[binterl_moveALN,binterl_nil]
                   ) (*NDC*) >- (
-                  FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[Process_t_distinct,Process_t_case_def,ProcessCombinator_t_distinct,ProcessCombinator_t_case_def]
+                  FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[Process_t_distinct,Process_t_case_def,ProcessCombinator_t_distinct,ProcessCombinator_t_case_def] >- (
+                    IMP_RES_TAC sapic_plus_position_conditional_true_transition_def >>
+                    Q.EXISTS_TAC `(SOME (INL (Fact TermFact [e])))` >>
+                    Q.EXISTS_TAC `NONE` >>
+                    rw[sapic_position_transition_with_symb_def,sapic_position_transition_def,sapic_position_conditional_true_transition_def,DYtranrel_def] >>
+                    metis_tac[binterl_moveALN,binterl_nil]
+                    ) >>
+                    IMP_RES_TAC sapic_plus_position_conditional_false_transition_def >>
+                    Q.EXISTS_TAC `(SOME (INL (Fact TermFact [e])))` >>
+                    Q.EXISTS_TAC `NONE` >>
+                    rw[sapic_position_transition_with_symb_def,sapic_position_transition_def,sapic_position_conditional_false_transition_def,DYtranrel_def] >>
+                    metis_tac[binterl_moveALN,binterl_nil]
                   ) >- (
                   FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[Process_t_distinct,Process_t_case_def,ProcessCombinator_t_distinct,ProcessCombinator_t_case_def]
                   )  >- (
@@ -312,7 +323,14 @@ val sapic_vs_DY_to_spaicplus_single_transition_thm = store_thm(
             rw[sapic_plus_position_transition_with_symb_def,sapic_plus_position_ndc_transition_def]
             ) (*NDC*) >- (       
             IMP_RES_TAC sapic_position_transition_def >>
-            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[Process_t_distinct,Process_t_case_def,ProcessCombinator_t_distinct,ProcessCombinator_t_case_def]
+            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[Process_t_distinct,Process_t_case_def,ProcessCombinator_t_distinct,ProcessCombinator_t_case_def] >- (
+              IMP_RES_TAC sapic_position_conditional_true_transition_def >>
+              IMP_RES_TAC DYtranrel_def >>
+              rw[sapic_plus_position_transition_with_symb_def,sapic_plus_position_conditional_true_transition_def]
+              ) >>
+            IMP_RES_TAC sapic_position_conditional_false_transition_def >>
+            IMP_RES_TAC DYtranrel_def >>
+            rw[sapic_plus_position_transition_with_symb_def,sapic_plus_position_conditional_false_transition_def]    
             ) (*CondEq*) >- (       
             IMP_RES_TAC sapic_position_transition_def >>
             FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[Process_t_distinct,Process_t_case_def,ProcessCombinator_t_distinct,ProcessCombinator_t_case_def]
