@@ -15,14 +15,9 @@ val arch_str         = "arm8";
 val dafilename = "xor.da";
 
  val symbs_sec_text = [
-     "__libc_malloc",
-     "memcpy",
-     "otp",
-     "xor",
-     "socket_connect",
+     "new_key",
+     "senc",
      "send",
-     "RAND_bytes",
-     "client",
      "main"
   ];
   

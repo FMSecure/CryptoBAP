@@ -4,14 +4,14 @@ The cryptographic functions names are as follows:
 
 
 
-memcpy
+send
 
 
 
 
-otp
-RAND_bytes
-xor
+new_key
+
+senc
 
 
 

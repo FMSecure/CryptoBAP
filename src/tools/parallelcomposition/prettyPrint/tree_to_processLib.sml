@@ -123,6 +123,14 @@ fun bir_exp_symbvar_to_symbval vals_lis pred_be =
     else pred_be) handle _ => raise ERR "bir_exp_symbvar_to_symbval" ("cannot do it "^(term_to_string pred_be));
 	 
 
+fun simpleholset_to_list t =
+  if pred_setSyntax.is_empty t then [] else
+  if not (pred_setSyntax.is_insert t) then
+    raise ERR "simpleholset_to_list" ("cannot handle syntax: " ^ (term_to_string t))
+  else
+    let val (x, rset) = pred_setSyntax.dest_insert t in
+      x::(simpleholset_to_list rset)
+    end;
 
 	
     
@@ -135,7 +143,7 @@ fun sbir_tree_sapic_process sort_vals tree =
 	    val (name,bir_type) = dest_BVar a;
 	    val namestr = stringSyntax.fromHOLstring name;
 	in
-	    if ((String.isSuffix "assert_true_cnd" namestr) orelse(String.isSuffix "T" namestr) orelse (String.isSuffix "init_pred" namestr) orelse (String.isSuffix "assert_false_cnd" namestr) orelse (String.isSuffix "cjmp_false_cnd" namestr) orelse (String.isSuffix "MEM" namestr) orelse (String.isSuffix "ProcState_Z" namestr) orelse (String.isSuffix "ProcState_V" namestr) orelse (String.isSuffix "ProcState_N" namestr) orelse (String.isSuffix "ProcState_C" namestr) orelse (String.isSuffix "RepEnd" namestr) orelse (String.isSuffix "R30" namestr))
+	    if ((String.isSuffix "assert_true_cnd" namestr) orelse(String.isSuffix "T" namestr) orelse (String.isSuffix "init_pred" namestr) orelse (String.isSuffix "assert_false_cnd" namestr) orelse (String.isSuffix "cjmp_false_cnd" namestr) orelse (*(String.isSuffix "MEM" namestr) orelse*) (String.isSuffix "ProcState_Z" namestr) orelse (String.isSuffix "ProcState_V" namestr) orelse (String.isSuffix "ProcState_N" namestr) orelse (String.isSuffix "ProcState_C" namestr) orelse (String.isSuffix "RepEnd" namestr) orelse (String.isSuffix "R30" namestr))
 	    then (sbir_tree_sapic_process sort_vals str)
 	    else if ((String.isSuffix "comp_true_cnd" namestr) orelse (String.isSuffix "cjmp_true_cnd" namestr))
 	    then
@@ -150,19 +158,35 @@ fun sbir_tree_sapic_process sort_vals tree =
 	    else if ((String.isSuffix "Key" namestr) orelse (String.isSuffix "iv" namestr) orelse (String.isSuffix "pkP" namestr) orelse (String.isSuffix "skS" namestr) orelse (String.isSuffix "RAND_NUM" namestr) orelse (String.isSuffix "OTP" namestr) orelse (String.isSuffix "SKey" namestr)  orelse (String.isSuffix "Epriv_i" namestr)  orelse (String.isSuffix "Epriv_r" namestr) orelse (String.isSuffix "sid_i" namestr)  orelse (String.isSuffix "sid_r" namestr) )
 	    then  (mk_ProcessAction ((mk_New ((sapic_term_to_name o fst o bir_exp_to_sapic_term) b)),(mk_ProcessComb(mk_Let ((fst(bir_exp_to_sapic_term (mk_BExp_Den a))),((mk_Con o sapic_term_to_name o fst o bir_exp_to_sapic_term) b)),(sbir_tree_sapic_process sort_vals str),(ProcessNull_tm)))))
 	    else if ((String.isSuffix "K" namestr) orelse (String.isSuffix "Kr" namestr))
-	    then (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
+	    then
+		let 
+		    val be = (bir_exp_symbvar_to_symbval sort_vals b);
+		    val exp_vars = (snd o dest_eq o concl o EVAL) ``(bir_vars_of_exp ^be)``;
+		    val vars = (simpleholset_to_list) exp_vars;
+			(* WIP: translate vars list to outs *)
+		in	
+		    (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
+		end
 	    else if (String.isSuffix "Rep" namestr)
 	    then (mk_ProcessAction (Rep_tm,(sbir_tree_sapic_process sort_vals str)))
 	    else if (String.isSuffix "Adv" namestr)
 	    then (mk_ProcessAction ((mk_ChIn (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
 	    else if ((String.isSuffix "event_true_cnd" namestr) orelse (String.isSuffix "event1" namestr) orelse (String.isSuffix "event2" namestr) orelse (String.isSuffix "event3" namestr) orelse (String.isSuffix "event_false_cnd" namestr))
 	    then (mk_ProcessAction ((mk_Event (mk_Fact(TermFact_tm,(listSyntax.mk_list ([(read_events namestr)],SapicTerm_t_ty))))),(sbir_tree_sapic_process sort_vals str)))	 
-	    else if ((is_BExp_Cast b) orelse (is_BExp_Load b) orelse (is_BExp_Store b))
-	    then (sbir_tree_sapic_process sort_vals str)
+	   (* else if ((is_BExp_Cast b) orelse (is_BExp_Load b) orelse (is_BExp_Store b))
+	    then (sbir_tree_sapic_process sort_vals str)*)
 	    else (mk_ProcessComb(mk_Let ((fst(bir_exp_to_sapic_term (mk_BExp_Den a))),(fst(bir_exp_to_sapic_term b))),(sbir_tree_sapic_process sort_vals str),(ProcessNull_tm)))
 end)
 			 
-
+(*val be = ``
+	       (BExp_Store
+		    (BExp_Load (BExp_Den (BVar "MEM" (BType_Mem Bit64 Bit8)))
+			  (BExp_Den (BVar "R1" (BType_Imm Bit64)))
+				       BEnd_LittleEndian Bit64)
+		    (BExp_Den (BVar "ADDR1" (BType_Imm Bit64)))
+		    BEnd_BigEndian
+		    (BExp_Const (Imm128 (42w :word128))))
+	       ``;*)
 
 end(*local*)
 
