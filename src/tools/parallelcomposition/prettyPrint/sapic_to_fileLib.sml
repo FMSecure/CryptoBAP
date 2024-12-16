@@ -180,6 +180,37 @@ fun process_to_string pro =
     else raise ERR "process_to_string" ("Don't know Sapic Process: " ^ (term_to_string pro))
 
 
+fun refine_process pro =
+    if (is_ProcessNull pro) then pro
+    else if (is_ProcessComb pro)
+    then
+	let
+	    val (c,pl,pr) = dest_ProcessComb pro;
+	    val refined_pl = refine_process pl;
+            val refined_pr = refine_process pr;
+	in
+	    if ((is_ProcessNull refined_pl) andalso (is_ProcessNull refined_pr) andalso ((is_Let c) orelse (is_Lookup c) orelse (is_NDC c)))
+	    then ProcessNull_tm
+	    else if ((is_NDC c) andalso (is_ProcessNull refined_pr) andalso not(is_ProcessNull refined_pl))
+	    then refined_pl
+	    else if ((is_NDC c) andalso (is_ProcessNull refined_pl) andalso not(is_ProcessNull refined_pr))
+	    then refined_pr
+	    else mk_ProcessComb(c, refined_pl, refined_pr)
+	end		
+    else if (is_ProcessAction pro)
+    then
+	let
+	    val (a,p) = dest_ProcessAction pro;
+	    val refined_p = refine_process p;
+	in
+	    if ((is_ProcessNull refined_p) andalso ((is_New a) orelse (is_ChIn a)))
+	    then ProcessNull_tm	 
+	    else mk_ProcessAction(a,refined_p)
+	end		    
+    else raise ERR "refine_process" ("Don't know Sapic Process: " ^ (term_to_string pro))
+
+	       
+
 (* write Sapic into a file *)
 fun write_sapic_to_file str =
     let
@@ -193,3 +224,8 @@ fun write_sapic_to_file str =
 end(*local*)
 
 end (* struct *)
+
+
+
+
+

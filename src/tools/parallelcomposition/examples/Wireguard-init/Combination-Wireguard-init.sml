@@ -150,17 +150,10 @@ val sapic_process = sbir_tree_sapic_process sort_vals (purge_tree valtr);
 val _ = print ("built sapic_process");
 val _ = print "\n";
 
-(*
-val refined_process = refine_process sapic_process;
 
-val rset = ((Redblackset.empty Term.compare): term Redblackset.set);
-    
-val process_with_live_vars = process_live_vars rset refined_process;
-val _ = print ("built a refined process with live variables");
-val _ = print "\n";
-*)
+val refined_process = refine_process sapic_process;
 	
-val _ =  ( write_sapic_to_file o process_to_string) sapic_process;
+val _ =  ( write_sapic_to_file o process_to_string) refined_process;
      
 val _ = print ("wrote into file");
 val _ = print "\n";
