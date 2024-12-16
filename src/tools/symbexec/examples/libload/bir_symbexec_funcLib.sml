@@ -1578,7 +1578,6 @@ fun One_Time_Pad syst =
 	val syst = update_key Fn_vn vn syst;
 
 	val syst =  update_envvar ``BVar "R0" (BType_Imm Bit64)`` vn syst;
-	 
 	    
     in
 	syst

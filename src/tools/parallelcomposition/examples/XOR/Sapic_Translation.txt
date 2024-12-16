@@ -14,4 +14,8 @@ let 36_R0='123456' in
 let 37_R0=UnsignedCast(Xor('123456',LowCast(34_R1,'32')),'64') in 
 let 42_MEM=Store(31_MEM,LowCast(37_R0,'32'),LittleEndian,Plus(sy_SP_EL0,'36')) in 
 let 45_R0=UnsignedCast(Load(42_MEM,'32',LittleEndian,Plus(sy_SP_EL0,'36')),'64') in 
-out(45_R0)
+out(45_R0);
+out(sy_MEM);
+out(2_Key);
+out(23_Enc);
+out(sy_SP_EL0)

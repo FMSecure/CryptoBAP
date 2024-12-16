@@ -63,12 +63,16 @@ val pred_be = “BExp_Den (BVar "994_R0" (BType_Imm Bit64))”*)
 fun bir_exp_symbvar_to_symbval vals_lis pred_be =
     (if (is_BExp_Const pred_be) then pred_be
     else if (is_BExp_Den pred_be) then
-	(let
+	let
 	     val be =  bir_symbexec_funcLib.symbval_bexp (bir_symbexec_treeLib.find_be_val vals_lis (dest_BExp_Den pred_be));
 
+	     (* val _ = print "\n"; *)
+	     (* val _ = print (term_to_string be); *)
+	     (* val _ = print "\n"; *)
+
 	 in
-	     bir_exp_symbvar_to_symbval vals_lis be
-	 end) handle e => pred_be
+	     (bir_exp_symbvar_to_symbval vals_lis be) handle e => be
+	 end
     else if (is_BExp_Cast pred_be) then
 	let
 	    val (castt, subexp, sz) = (dest_BExp_Cast) pred_be;
@@ -120,7 +124,7 @@ fun bir_exp_symbvar_to_symbval vals_lis pred_be =
 	in
 	    mk_BExp_MemEq((bir_exp_symbvar_to_symbval vals_lis subexp1), (bir_exp_symbvar_to_symbval vals_lis subexp2))
 	end
-    else pred_be) handle _ => raise ERR "bir_exp_symbvar_to_symbval" ("cannot do it "^(term_to_string pred_be));
+    else pred_be) handle _ => pred_be;(*raise ERR "bir_exp_symbvar_to_symbval" ("cannot do it "^(term_to_string pred_be));*)
 	 
 
 fun simpleholset_to_list t =
@@ -132,6 +136,10 @@ fun simpleholset_to_list t =
       x::(simpleholset_to_list rset)
     end;
 
+fun vars_to_outs vars proc =
+    case vars of
+	([]: term list) => proc
+      | h::t => (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term h)))),(vars_to_outs t proc)))
 	
     
 fun sbir_tree_sapic_process sort_vals tree =
@@ -160,12 +168,18 @@ fun sbir_tree_sapic_process sort_vals tree =
 	    else if ((String.isSuffix "K" namestr) orelse (String.isSuffix "Kr" namestr))
 	    then
 		let 
-		    val be = (bir_exp_symbvar_to_symbval sort_vals b);
-		    val exp_vars = (snd o dest_eq o concl o EVAL) ``(bir_vars_of_exp ^be)``;
-		    val vars = (simpleholset_to_list) exp_vars;
-			(* WIP: translate vars list to outs *)
-		in	
-		    (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
+		    val be = (bir_exp_symbvar_to_symbval sort_vals (mk_BExp_Den b));
+		(* val _ = print "\n"; *)
+		(* val _ = print (term_to_string be); *)
+		(* val _ = print "\n"; *)
+		in
+		    if (identical be (mk_BExp_Den b)) then (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
+		    else let
+			    val exp_vars = (snd o dest_eq o concl o EVAL) ``(bir_vars_of_exp ^be)``;
+			    val vars = (simpleholset_to_list) exp_vars;
+			in	
+			    (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(vars_to_outs vars (sbir_tree_sapic_process sort_vals str))))
+			end
 		end
 	    else if (String.isSuffix "Rep" namestr)
 	    then (mk_ProcessAction (Rep_tm,(sbir_tree_sapic_process sort_vals str)))
