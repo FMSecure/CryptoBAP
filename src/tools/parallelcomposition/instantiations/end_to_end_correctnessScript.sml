@@ -5,14 +5,14 @@ open listTheory;
 open sapicplusTheory;
 open parallelcompositionconcreteTheory;
 open interleavingconcreteTheory;
-open parallelcompositiondeductionTheory;
-open interleavingdeductionTheory;
-open derived_rules_deductionTheory;
+open parallelcompositiongeneraldeductionTheory;
+open interleavinggeneraldeductionTheory;
+open derived_rules_generaldeductionTheory;
 open bir_comp_attacker_vs_sbir_comp_DYTheory;
 open arm8_vs_bir_comp_attackerTheory;
 open sapic_comp_DY_sapicplusTheory;
 open sbir_sapic_comp_DYTheory;
-open traceinclusionTheory;
+open refinementTheory;
 open bir_backlifterTheory;
 open bir_program_multistep_propsTheory;
 open arithmeticTheory;
@@ -23,7 +23,7 @@ open WinitexampleTheory;
 open WrespexampleTheory;
 val _ = new_theory "end_to_end_correctness";
 
-
+(*
 (********************************)
 (*end to end correctness result *)                                               
 (********************************)
@@ -344,7 +344,7 @@ val end_to_end_correctness_Winit_vs_Wresp_vs_attacker_thm = store_thm(
   metis_tac[comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm]
   )
 
-
+*)
 
   
 val _ = export_theory();

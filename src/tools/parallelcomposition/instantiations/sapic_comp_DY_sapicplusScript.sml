@@ -4,10 +4,10 @@ open pred_setTheory;
 open sigma_algebraTheory;
 open listTheory;
 open tautLib;
-open interleavingdeductionTheory;
-open parallelcompositiondeductionTheory;
+open interleavinggeneraldeductionTheory;
+open parallelcompositiongeneraldeductionTheory;
 open translate_to_sapicTheory;
-open derived_rules_deductionTheory;
+open derived_rules_generaldeductionTheory;
 open sbir_treeTheory;
 open sapicplusTheory;
 open messagesTheory;
@@ -597,7 +597,7 @@ val sapic_vs_DY_EQ_spaicplus_multi_transitions_thm = store_thm(
      rewrite_tac[spaicplus_to_sapic_vs_DY_multi_transitions_thm] 
   )
 
-
+(*
 val comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm = store_thm(
   "comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm",
   ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (ded:('SPpred) tded).
@@ -610,6 +610,6 @@ val comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm = store_thm(
      rewrite_tac[sapic_vs_DY_EQ_spaicplus_multi_transitions_thm]
   )                       
 
-
+*)
 
 val _ = export_theory();

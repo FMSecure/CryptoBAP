@@ -12,7 +12,7 @@ open sbir_treeTheory;
 open sapicplusTheory;
 open messagesTheory;
 open dolevyaoTheory;
-open traceinclusionTheory;
+open refinementTheory;
 open bir_programTheory;
 open bir_program_valid_stateTheory;
 open HolBACoreSimps;

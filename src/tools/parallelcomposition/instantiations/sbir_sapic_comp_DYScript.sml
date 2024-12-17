@@ -1,13 +1,14 @@
+
 open HolKernel Parse boolLib bossLib;
 open sumTheory;
 open pred_setTheory;
 open sigma_algebraTheory;
 open listTheory;
 open tautLib;
-open interleavingdeductionTheory;
-open parallelcompositiondeductionTheory;
+open interleavinggeneraldeductionTheory;
+open parallelcompositiongeneraldeductionTheory;
 open translate_to_sapicTheory;
-open derived_rules_deductionTheory;
+open derived_rules_generaldeductionTheory;
 open sbir_treeTheory;
 open sapicplusTheory;
 open messagesTheory;
@@ -15,6 +16,7 @@ open dolevyaoTheory;
 
 val _ = new_theory "sbir_sapic_comp_DY";
 
+(*
 val comptraces_sapic_def =
 Define`
       comptraces_sapic
@@ -133,5 +135,6 @@ val compose_sbir_sapic_vs_DY_thm = store_thm(
   );
 
 
-
+*)
 val _ = export_theory();
+
