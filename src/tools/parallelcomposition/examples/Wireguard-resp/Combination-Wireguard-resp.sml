@@ -116,30 +116,41 @@ val _ = print "\n\n";
 val predlists = List.map (fn syst => ((rev o SYST_get_pred) syst))
                          systs_noassertfailed;
     
-val tr = predlist_to_tree (bir_symbexec_sortLib.sort_pred_lists predlists);
-
-val vals_list = bir_symbexec_treeLib.symb_execs_vals_term systs_noassertfailed [];
+val predlists_refined = List.map (fn lst => bir_symbexec_sortLib.removeDuplicates lst) predlists;
+val _ = print "Get refined predlists";    
+val _ = print "\n";
+(* val _ = printTermList predlists_refined; *)
     
+val tree = predlist_to_tree predlists_refined;
+
+val _ = print "Get tree";
+val _ = print "\n";
+    
+val vals_list = bir_symbexec_treeLib.symb_execs_vals_term systs_noassertfailed [];
+
+val _ = print "Get vals_list";
+val _ = print "\n";
+	
 val sort_vals = bir_symbexec_sortLib.refine_symb_val_list vals_list;
 
+val _ = print "Get sort_vals";
+val _ = print "\n";    
 
-val valtr =  tree_with_value tr sort_vals;
-
-val _ = print "\n";     
+val valtr =  tree_with_value tree sort_vals;
+     
 val _ = print ("built a symbolic tree with value");
 val _ = print "\n";
 
 
-val sapic_process = sbir_tree_sapic_process (purge_tree valtr);
-
-
-val _ = print "\n";     
-val _ = print ("sapic_process");
-val _ = print "\n";
+val sapic_process = sbir_tree_sapic_process sort_vals (purge_tree valtr);
     
-val _ =  ( write_sapic_to_file o process_to_string) sapic_process
+val _ = print ("built sapic_process");
+val _ = print "\n";
 
-val _ = print "\n";     
+
+val refined_process = refine_process sapic_process;
+	
+val _ =  ( write_sapic_to_file o process_to_string) refined_process;
+     
 val _ = print ("wrote into file");
 val _ = print "\n";
-    
