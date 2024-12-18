@@ -105,7 +105,7 @@ metis_tac[OUTR_INL_FUN]
   metis_tac[OUTL_INR_FUN]
 )
 
-  (*       
+        
 val symmetry_generaldeduction_thm = store_thm(
   " symmetry_generaldeduction",
   ``∀t f g  n m Sym P P' S1 S2 Sym' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
@@ -142,7 +142,48 @@ val symmetry_generaldeduction_thm = store_thm(
         metis_tac[IMAGE_SUM_MAP_R2L_thm]
                 ) >>
         gen_tac >>
-        Cases_on `h` >- (
+     Cases_on `h` >-(
+ FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
+          rpt strip_tac >>
+          EQ_TAC >- (
+rpt strip_tac >>
+Q.EXISTS_TAC `IMAGE (SUM_MAP n m) P''` >>
+rw[] >- (
+ PAT_X_ASSUM ``!phi. A`` (ASSUME_TAC o (Q.SPECL [`((SUM_MAP (m: 'pred2 -> 'pred1) (n: 'pred1 -> 'pred2)) phi)`])) >>
+ IMP_RES_TAC combineAllDed_def >-(
+
+
+
+            )
+          )
+
+
+
+)
+
+              )
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+      (
           FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
           rpt strip_tac >>
           EQ_TAC >- (

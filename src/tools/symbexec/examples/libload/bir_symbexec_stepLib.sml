@@ -315,7 +315,7 @@ fun symb_exec_library_block abpfun n_dict bl_dict adr_dict syst =
 		val _ = if true then () else
 			if (lib_type = "C_Lib") then () else
 			print ("Lib type: " ^ (lib_type) ^ "\n");
-
+(*
 (* For WireGuard case-study *)
 		val systs = if (lib_type = "HMAC_send") then [bir_symbexec_funcLib.HMAC_Send syst]
 			    else if (lib_type = "HMAC_receive") then [bir_symbexec_funcLib.HMAC_Receive syst]
@@ -341,7 +341,7 @@ fun symb_exec_library_block abpfun n_dict bl_dict adr_dict syst =
 			    else if (lib_type = "Fail") then [SYST_update_status BST_AssumptionViolated_tm syst]
 			    else if ((lib_type = "event1") orelse (lib_type = "event2") orelse (lib_type = "event3")) then (bir_symbexec_funcLib.Event lib_type syst)
 			    else [syst];
-(*
+*)
 (* For other case-studies *)
 		val systs = if (lib_type = "HMAC_send") then [bir_symbexec_funcLib.HMAC_Send syst]
 			    else if (lib_type = "HMAC_receive") then [bir_symbexec_funcLib.HMAC_Receive syst]
@@ -366,7 +366,7 @@ fun symb_exec_library_block abpfun n_dict bl_dict adr_dict syst =
 			    else if (lib_type = "compare") then (bir_symbexec_funcLib.Compare syst)
 			    else if (lib_type = "Fail") then [SYST_update_status BST_AssumptionViolated_tm syst]
 			    else if ((lib_type = "event1") orelse (lib_type = "event2") orelse (lib_type = "event3")) then (bir_symbexec_funcLib.Event lib_type syst)
-			    else [syst];*)
+			    else [syst];
 		    
 		val systs = if ((not o List.null o fst o listSyntax.dest_list) bl_stmts)
 			    then

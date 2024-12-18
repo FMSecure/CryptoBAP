@@ -154,24 +154,24 @@ fun sbir_tree_sapic_process sort_vals tree =
 	    if ((String.isSuffix "assert_true_cnd" namestr) orelse(String.isSuffix "T" namestr) orelse (String.isSuffix "init_pred" namestr) orelse (String.isSuffix "assert_false_cnd" namestr) orelse (String.isSuffix "cjmp_false_cnd" namestr) orelse (String.isSuffix "MEM" namestr) orelse (String.isSuffix "ProcState_Z" namestr) orelse (String.isSuffix "ProcState_V" namestr) orelse (String.isSuffix "ProcState_N" namestr) orelse (String.isSuffix "ProcState_C" namestr) orelse (String.isSuffix "RepEnd" namestr) orelse (String.isSuffix "R30" namestr))
 	    then (sbir_tree_sapic_process sort_vals str)
 	    else if ((String.isSuffix "comp_true_cnd" namestr) orelse (String.isSuffix "cjmp_true_cnd" namestr))
-	    then
-		let
+	    then  mk_ProcessComb (NDC_tm,(sbir_tree_sapic_process sort_vals str),(ProcessNull_tm))
+		(*let
 		    val be = (bir_exp_symbvar_to_symbval sort_vals b);
 		    val _ = print "\n";
 		    val _ = print (term_to_string be);
 		    val _ = print "\n";
 		in
 		    mk_ProcessComb ((mk_Cond (fst(bir_exp_to_sapic_term be))),(sbir_tree_sapic_process sort_vals str),(ProcessNull_tm))
-		end
+		end*)
 	    else if ((String.isSuffix "Key" namestr) orelse (String.isSuffix "iv" namestr) orelse (String.isSuffix "pkP" namestr) orelse (String.isSuffix "skS" namestr) orelse (String.isSuffix "RAND_NUM" namestr) orelse (String.isSuffix "OTP" namestr) orelse (String.isSuffix "SKey" namestr)  orelse (String.isSuffix "Epriv_i" namestr)  orelse (String.isSuffix "Epriv_r" namestr) orelse (String.isSuffix "sid_i" namestr)  orelse (String.isSuffix "sid_r" namestr) )
 	    then  (mk_ProcessAction ((mk_New ((sapic_term_to_name o fst o bir_exp_to_sapic_term) b)),(mk_ProcessComb(mk_Let ((fst(bir_exp_to_sapic_term (mk_BExp_Den a))),((mk_Con o sapic_term_to_name o fst o bir_exp_to_sapic_term) b)),(sbir_tree_sapic_process sort_vals str),(ProcessNull_tm)))))
 	    else if ((String.isSuffix "K" namestr) orelse (String.isSuffix "Kr" namestr))
 	    then
-		let 
+		let
 		    val be = (bir_exp_symbvar_to_symbval sort_vals (mk_BExp_Den b));
-		val _ = print "\n";
-		val _ = print (term_to_string be);
-		val _ = print "\n";
+		    (* val _ = print "\n"; *)
+		    (* val _ = print (term_to_string be); *)
+		    (* val _ = print "\n"; *)
 		in
 		    if (identical be (mk_BExp_Den b)) then (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
 		    else let
