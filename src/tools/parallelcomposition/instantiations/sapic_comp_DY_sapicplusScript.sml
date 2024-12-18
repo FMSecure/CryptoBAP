@@ -20,7 +20,7 @@ val _ = new_theory "sapic_comp_DY_sapicplus";
 
 val spaicplus_to_sapic_vs_DY_single_transition_thm = store_thm(
   "spaicplus_to_sapic_vs_DY_single_transition_thm",
-  ``∀e Re' NRe' i' i Re NRe Pr' Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (Ded:('SPpred) tded) (ded3:('SPpred + DYpred) tded).
+  ``∀e Re' NRe' i' i Re NRe Pr' Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SPpred + DYpred -> bool)) (P':(SPpred + DYpred -> bool)) (Ded:(SPpred) tded) (ded3:(SPpred + DYpred) tded).
        sapic_plus_position_transition_with_symb (Sym,P,(Pconfig_plus (Pr,i,Re,NRe))) e
        (Sym',P',(Pconfig_plus (Pr',i',Re',NRe'))) ⇒
      ∃e1 e2.
@@ -281,7 +281,7 @@ val spaicplus_to_sapic_vs_DY_single_transition_thm = store_thm(
 
 val sapic_vs_DY_to_spaicplus_single_transition_thm = store_thm(
   "sapic_vs_DY_to_spaicplus_single_transition_thm",
-  ``∀e Re' NRe' i' i Re NRe Pr' Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (Ded:('SPpred) tded) (ded3:('SPpred + DYpred) tded).
+  ``∀e Re' NRe' i' i Re NRe Pr' Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SPpred + DYpred -> bool)) (P':(SPpred + DYpred -> bool)) (Ded:(SPpred) tded) (ded3:(SPpred + DYpred) tded).
        (∃e1 e2.
           sapic_position_transition_with_symb (Sym,IMAGE OUTL P,(Pconfig (Pr,i,Re,NRe))) e1
                                               (Sym',IMAGE OUTL P',(Pconfig (Pr',i',Re',NRe'))) ∧
@@ -494,7 +494,7 @@ val sapic_vs_DY_to_spaicplus_single_transition_thm = store_thm(
 
 val sapic_vs_DY_EQ_spaicplus_single_transition_thm = store_thm(
   "sapic_vs_DY_EQ_spaicplus_single_transition_thm",
-  ``∀e Re' NRe' i' i Re NRe Pr' Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (Ded:('SPpred) tded) (ded3:('SPpred + DYpred) tded).
+  ``∀e Re' NRe' i' i Re NRe Pr' Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SPpred + DYpred -> bool)) (P':(SPpred + DYpred -> bool)) (Ded:(SPpred) tded) (ded3:(SPpred + DYpred) tded).
        (∃e1 e2.
           sapic_position_transition_with_symb (Sym,IMAGE OUTL P,(Pconfig (Pr,i,Re,NRe))) e1
                                               (Sym',IMAGE OUTL P',(Pconfig (Pr',i',Re',NRe'))) ∧
@@ -512,7 +512,7 @@ val sapic_vs_DY_EQ_spaicplus_single_transition_thm = store_thm(
 
 val spaicplus_to_sapic_vs_DY_multi_transitions_thm = store_thm(
   "spaicplus_to_sapic_vs_DY_multi_transitions_thm",
-  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (Ded:('SPpred) tded) (ded3:('SPpred + DYpred) tded).
+  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SPpred + DYpred -> bool)) (P':(SPpred + DYpred -> bool)) (Ded:(SPpred) tded) (ded3:(SPpred + DYpred) tded).
        sapic_plus_position_multi_transitions_with_symb (Sym,P,(Pconfig_plus (Pr0,0,Re0,NRe0))) t
        (Sym',P',(Pconfig_plus (Pr,i,Re,NRe))) ⇒
      ∃t1 t2.
@@ -545,7 +545,7 @@ val spaicplus_to_sapic_vs_DY_multi_transitions_thm = store_thm(
 
 val sapic_vs_DY_to_spaicplus_multi_transitions_thm = store_thm(
   "sapic_vs_DY_to_spaicplus_multi_transitions_thm",
-  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (Ded:('SPpred) tded) (ded3:('SPpred + DYpred) tded).
+  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SPpred + DYpred -> bool)) (P':(SPpred + DYpred -> bool)) (Ded:(SPpred) tded) (ded3:(SPpred + DYpred) tded).
        (∃t1 t2.
           sapic_position_multi_transitions_with_symb (Sym,IMAGE OUTL P,(Pconfig (Pr0,0,Re0,NRe0))) t1
                                                      (Sym',IMAGE OUTL P',(Pconfig (Pr,i,Re,NRe))) ∧
@@ -567,10 +567,10 @@ val sapic_vs_DY_to_spaicplus_multi_transitions_thm = store_thm(
      IMP_RES_TAC binterl_NotEmpty >>
      rw[] >>
      IMP_RES_TAC TranRelSnocBack >>
-     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`ESt`,`IMAGE OUTR (P'':('SPpred + DYpred -> bool))`])) >>
-     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`ESt`,`IMAGE OUTR (P'':('SPpred + DYpred -> bool))`])) >>
-     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`(Pconfig (Pr'',i'',Re'',NRe''))`,`IMAGE OUTL (P'':('SPpred + DYpred -> bool))`])) >>
-     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`(Pconfig (Pr'',i'',Re'',NRe''))`,`IMAGE OUTL (P'':('SPpred + DYpred -> bool))`])) >>
+     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`ESt`,`IMAGE OUTR (P'':(SPpred + DYpred -> bool))`])) >>
+     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`ESt`,`IMAGE OUTR (P'':(SPpred + DYpred -> bool))`])) >>
+     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`(Pconfig (Pr'',i'',Re'',NRe''))`,`IMAGE OUTL (P'':(SPpred + DYpred -> bool))`])) >>
+     PAT_X_ASSUM ``!v' s' p'. A`` (ASSUME_TAC o (Q.SPECL [`Sym''`,`(Pconfig (Pr'',i'',Re'',NRe''))`,`IMAGE OUTL (P'':(SPpred + DYpred -> bool))`])) >>
      IMP_RES_TAC binterl_Conj >>
      PAT_X_ASSUM ``!Re0 NRe0 i Re NRe Pr0 Pr Sym Sym' P P' Ded ded3. A`` (ASSUME_TAC o (Q.SPECL [`Re0`,`NRe0`,`i''`,`Re''`,`NRe''`,`Pr0`,`Pr''`,`Sym`,`Sym''`,`P`,`P''`,`ded`,`ded3`]))>>          RES_TAC  >>
      IMP_RES_TAC DYmultranrel_single >>
@@ -583,7 +583,7 @@ val sapic_vs_DY_to_spaicplus_multi_transitions_thm = store_thm(
 
 val sapic_vs_DY_EQ_spaicplus_multi_transitions_thm = store_thm(
   "sapic_vs_DY_EQ_spaicplus_multi_transitions_thm",
-  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SapicTerm_t + DYpred -> bool)) (P':(SapicTerm_t + DYpred -> bool)) (Ded:(SapicTerm_t) tded) (ded3:(SapicTerm_t + DYpred) tded).
+  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SPpred + DYpred -> bool)) (P':(SPpred + DYpred -> bool)).
        (∃t1 t2.
           sapic_position_multi_transitions_with_symb (Sym,IMAGE OUTL P,(Pconfig (Pr0,0,Re0,NRe0))) t1
                                                      (Sym',IMAGE OUTL P',(Pconfig (Pr,i,Re,NRe))) ∧
@@ -601,13 +601,13 @@ val sapic_vs_DY_EQ_spaicplus_multi_transitions_thm = store_thm(
 
 val comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm = store_thm(
   "comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm",
-  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SapicTerm_t + DYpred -> bool)) (P':(SapicTerm_t + DYpred -> bool)) (ded:(SapicTerm_t) tded).
+  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SPpred + DYpred -> bool)) (P':(SPpred + DYpred -> bool)).
        (
-       (TransDisable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,ded) (DYmultranrel,DYdeduction)) ∧
-       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,ded) (DYmultranrel,DYdeduction))
+       (TransDisable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,SPdeduction) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,SPdeduction) (DYmultranrel,DYdeduction))
        )⇒
        (
-       (comptraces (sapic_position_multi_transitions_with_symb,ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,P,(Pconfig (Pr0,0,Re0,NRe0)),ESt) (Sym',P',(Pconfig (Pr,i,Re,NRe)),ESt)) =
+       (comptraces (sapic_position_multi_transitions_with_symb,SPdeduction) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,P,(Pconfig (Pr0,0,Re0,NRe0)),ESt) (Sym',P',(Pconfig (Pr,i,Re,NRe)),ESt)) =
        (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,P,(Pconfig_plus (Pr0,0,Re0,NRe0))) (Sym',P',(Pconfig_plus (Pr,i,Re,NRe))))
        )``,
         FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [binterleave_ts,traces_def,comptraces_def,EXTENSION,sapic_plus_traces_def,IN_DEF,SUBSET_INTER_ABSORPTION,INTER_DEF] >>

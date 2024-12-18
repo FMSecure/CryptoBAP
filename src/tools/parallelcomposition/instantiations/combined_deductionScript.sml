@@ -30,10 +30,10 @@ Define`
 
 val composeDedOverApproxSapic_def =
 Define`
-      composeDedOverApproxSapic (P:(SapicTerm_t + DYpred -> bool)) ((INR ((K (z:SapicTerm_t)):DYpred)):(SapicTerm_t + DYpred)) =
+      composeDedOverApproxSapic (P:(SPpred + DYpred -> bool)) ((INR ((K (z:SapicTerm_t)):DYpred)):(SPpred + DYpred)) =
 (∃(x :SapicTerm_t) (y :SapicTerm_t) (v:Var_t).
    (((K (x)):DYpred) ∈ (IMAGE OUTR P)) ∧
-   (eqE x y) ∧
+   ((SP_Equ(x,y)) ∈ (IMAGE OUTL P)) ∧
    (v ∈ (fv y)) ∧
    (z = (TVar v))
 )

@@ -119,7 +119,16 @@ val translate_birexp_to_sapicterm_def = Define`
  ) 
  `;
 
-        
+val translate_BinPred_to_SPpred_def = Define`
+                                            translate_BinPred_to_SPpred exp =
+(case exp of
+   BExp_BinPred bp e1 e2 => (case bp of
+                               BIExp_Equal => SP_Equ((translate_birexp_to_sapicterm e1),(translate_birexp_to_sapicterm e2))
+                             | _ => Undef
+                            )
+ | _                     => Undef
+) 
+`;        
 (*****************end translation Bir Exp to Sapic Term**********************)
                  
 val sbirEvent_to_sapicFact_def = Define `
