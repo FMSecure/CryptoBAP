@@ -28,5 +28,16 @@ Define`
 `;
 
 
+val composeDedOverApproxSapic_def =
+Define`
+      composeDedOverApproxSapic (P:(SapicTerm_t + DYpred -> bool)) ((INR ((K (z:SapicTerm_t)):DYpred)):(SapicTerm_t + DYpred)) =
+(∃(x :SapicTerm_t) (y :SapicTerm_t) (v:Var_t).
+   (((K (x)):DYpred) ∈ (IMAGE OUTR P)) ∧
+   (eqE x y) ∧
+   (v ∈ (fv y)) ∧
+   (z = (TVar v))
+)
+`;
+
         
 val _ = export_theory();
