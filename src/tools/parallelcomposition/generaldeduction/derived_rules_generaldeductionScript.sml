@@ -28,7 +28,25 @@ Define `
        (RevDed (ded:('pred1 + 'pred2) tded) phi p  =  (∀(n: 'pred2 -> 'pred1) (m: 'pred1 -> 'pred2). ded (IMAGE (SUM_MAP n m) phi) ((SUM_MAP n m) p))
        )`;
 
-
+val IMAGE_SUM_MAP_Eq_thm = store_thm(
+  "IMAGE_SUM_MAP_Eq",
+  ``       
+  ∀P n m.
+    (IMAGE (SUM_MAP m n) (IMAGE (SUM_MAP n m) P)) = P
+                                                    ``,
+                                                    rpt strip_tac >>
+  Cases_on ‘P’ >-(
+    FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+    ) >>
+  FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_INSERT,SUM_MAP_CASE] >>
+  Cases_on ‘x’ >- (
+    FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >>
+    metis_tac[OUTR_INL_FUN]
+    ) >>
+  FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >> 
+  metis_tac[OUTL_INR_FUN]
+  )
+         
 val IMAGE_SUM_MAP_RI_thm = store_thm(
   "IMAGE_SUM_MAP_RI",
   ``
@@ -71,7 +89,7 @@ val IMAGE_SUM_MAP_R2L_thm = store_thm(
   "IMAGE_SUM_MAP_R2L",
   ``
 ∀ P n m.
-IMAGE OUTR P = IMAGE OUTL (IMAGE (SUM_MAP n m) P)
+ IMAGE OUTL (IMAGE (SUM_MAP n m) P) = IMAGE OUTR P
 ``,
       rpt strip_tac >>
       Cases_on ‘P’ >-(
@@ -90,7 +108,7 @@ val IMAGE_SUM_MAP_L2R_thm = store_thm(
   "IMAGE_SUM_MAP_L2R",
   ``
 ∀ P n m.
-IMAGE OUTL P = IMAGE OUTR (IMAGE (SUM_MAP n m) P)
+ IMAGE OUTR (IMAGE (SUM_MAP n m) P) = IMAGE OUTL P
 ``,
       rpt strip_tac >>
       Cases_on ‘P’ >-(
@@ -150,11 +168,14 @@ rpt strip_tac >>
 Q.EXISTS_TAC `IMAGE (SUM_MAP n m) P''` >>
 rw[] >- (
  PAT_X_ASSUM ``!phi. A`` (ASSUME_TAC o (Q.SPECL [`((SUM_MAP (m: 'pred2 -> 'pred1) (n: 'pred1 -> 'pred2)) phi)`])) >>
- IMP_RES_TAC combineAllDed_def >-(
-
-
-
-            )
+ Cases_on ‘phi’ >- (
+            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def,SUM_MAP_CASE,combineAllDed_def,composeDed_def,RevDed_def] >- (
+              rw[IMAGE_SUM_MAP_R2L_thm] >>
+              metis_tac[Ded1Ded2]
+              ) >> 
+            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_DEF,SUM_MAP_CASE,sum_case_def] >>
+            rw[IMAGE_SUM_MAP_RI_thm] (*WIP*)
+                )
           )
 
 

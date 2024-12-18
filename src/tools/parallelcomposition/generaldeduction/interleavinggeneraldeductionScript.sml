@@ -152,7 +152,10 @@ val TranRelSnocRev = new_axiom ("TranRelSnocRev",
                                  
 val IMAGEOUT = new_axiom ("IMAGEOUT",
                           ``∀P P'. ((IMAGE OUTR P = IMAGE OUTR P') ∧ (IMAGE OUTL P = IMAGE OUTL P')) ⇒ (P = P')``);
-                              
+
+val Ded1Ded2 = new_axiom ("Ded1Ded2",
+                          ``∀(ded1:('pred1) tded) (ded2:('pred2) tded) P m x.
+                                        (ded1 (IMAGE OUTL P) (m x)) ⇒ (ded2 (IMAGE OUTR P) x)``);                           
 val DedRelINL = new_axiom ("DedRelINL",
                           ``∀(ded1:('pred1) tded) (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded3:('pred1 + 'pred2) tded) Sym P S1 S2 Sym' P' S1' S2' P'' t1 t2 x.
                             ((MTrn1 (Sym',IMAGE OUTL P'',S1') [NONE] (Sym',IMAGE OUTL P'' ∪ {x},S1')) ∧
