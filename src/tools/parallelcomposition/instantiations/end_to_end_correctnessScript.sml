@@ -85,7 +85,7 @@ val end_to_end_correctness_thm = store_thm(
   metis_tac[comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm]
   )
 
-(*                                                                  
+                                                                
 (*******************************)
 (*end to end correctness Winit *)                                               
 (*******************************)
@@ -121,7 +121,7 @@ val end_to_end_correctness_Winit_thm = store_thm(
   !mu ms mla n' lo c_st c_addr_labels
       (AMTrn:('attevent + 'ceventS, 'cstate) mctrel) Re0 NRe0 i Re NRe (Sym:(Var_t -> bool))
       (Sym':(Var_t -> bool)) (P:(bir_exp_t + DYpred -> bool)) (P':(bir_exp_t + DYpred -> bool))
-      (T0:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (Tre:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (Ded:(bir_exp_t) tded) .
+      (T0:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (Tre:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (sbir_Ded:(bir_exp_t) tded) (sapic_Ded:(SapicTerm_t) tded) .
 
     ^lifter_Winit_t ==>
     bmr_rel arch_Winit ((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0) ms ==>
@@ -134,20 +134,32 @@ val end_to_end_correctness_Winit_thm = store_thm(
     ~bir_state_is_terminated ((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre) ==>
     (∃ms'.
        (
+       (
        (arm8_att_comptraces (((arm8_mrel arm8prog_Winit):arm8_state -> ('cevent + 'ceventS) list -> arm8_state -> bool) || AMTrn) (ms,((InterpretStTwo:DYstate -> 'cstate) ESt)) (ms',((InterpretStTwo:DYstate -> 'cstate) ESt))) =
        (bir_att_comptraces ((bir_mrel (birprog_Winit:'observation_type bir_program_t)) || AMTrn) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0),((InterpretStTwo:DYstate -> 'cstate) ESt))  (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre),((InterpretStTwo:DYstate -> 'cstate) ESt)))
+       ) ∧
+       (TransEnable composeDedOverApprox (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction)) 
        )
        ==>
+       (
        (subset_comp
-        (bir_att_comptraces (composeMuRe (bir_mrel (birprog_Winit:'observation_type bir_program_t)) AMTrn) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0),((InterpretStTwo:DYstate -> 'cstate) ESt)) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre),((InterpretStTwo:DYstate -> 'cstate) ESt)))
-        (comptraces_tree (symbolic_tree_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,T0,ESt) (Sym',P',Tre,ESt))
+        (bir_att_comptraces ((bir_mrel (birprog_Winit:'observation_type bir_program_t)) || AMTrn) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0),((InterpretStTwo:DYstate -> 'cstate) ESt))  (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre),((InterpretStTwo:DYstate -> 'cstate) ESt)))
+        (comptraces_tree (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox (Sym,P,T0,ESt) (Sym',P',Tre,ESt))
+       ) ∧
+       (TransDisable composeDedOverApprox (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction))
        ) ==>
-       ((IMAGE (MAP sbirEvent_vs_DY_to_sapicFact_vs_DY) (comptraces_tree (symbolic_tree_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,T0,ESt) (Sym',P',Tre,ESt))) ⊆
-        (comptraces_sapic (sapic_position_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',P',(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt))
+       (
+       ((IMAGE (MAP sbirEvent_vs_DY_to_sapicFact_vs_DY) (comptraces_tree (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox (Sym,P,T0,ESt) (Sym',P',Tre,ESt))) ⊆
+        (comptraces_sapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt))
+       ) ∧
+       (TransDisable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction))
        ) ==>
-       (comptraces (sapic_position_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',P',(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt)) =
-       (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,P,(Pconfig_plus ((symbtree_to_sapic T0),0,Re0,NRe0))) (Sym',P',(Pconfig_plus ((symbtree_to_sapic Tre),i,Re,NRe))))
+       (comptraces (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt)) =
+       (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig_plus ((symbtree_to_sapic T0),0,Re0,NRe0))) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig_plus ((symbtree_to_sapic Tre),i,Re,NRe))))
     )
+
 
     ``,
   metis_tac[arch_Winit_def,end_to_end_correctness_thm]
@@ -186,10 +198,11 @@ val lifter_Wresp_t = concl lifter_Wresp_thm;
 val end_to_end_correctness_Wresp_thm = store_thm(
   "end_to_end_correctness_Wresp_thm",
   ``
+        
   !mu ms mla n' lo c_st c_addr_labels
       (AMTrn:('attevent + 'ceventS, 'cstate) mctrel) Re0 NRe0 i Re NRe (Sym:(Var_t -> bool))
       (Sym':(Var_t -> bool)) (P:(bir_exp_t + DYpred -> bool)) (P':(bir_exp_t + DYpred -> bool))
-      (T0:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (Tre:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (Ded:(bir_exp_t) tded) .
+      (T0:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (Tre:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (sbir_Ded:(bir_exp_t) tded) (sapic_Ded:(SapicTerm_t) tded) .
 
     ^lifter_Wresp_t ==>
     bmr_rel arch_Wresp ((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0) ms ==>
@@ -202,20 +215,32 @@ val end_to_end_correctness_Wresp_thm = store_thm(
     ~bir_state_is_terminated ((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre) ==>
     (∃ms'.
        (
+       (
        (arm8_att_comptraces (((arm8_mrel arm8prog_Wresp):arm8_state -> ('cevent + 'ceventS) list -> arm8_state -> bool) || AMTrn) (ms,((InterpretStTwo:DYstate -> 'cstate) ESt)) (ms',((InterpretStTwo:DYstate -> 'cstate) ESt))) =
        (bir_att_comptraces ((bir_mrel (birprog_Wresp:'observation_type bir_program_t)) || AMTrn) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0),((InterpretStTwo:DYstate -> 'cstate) ESt))  (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre),((InterpretStTwo:DYstate -> 'cstate) ESt)))
+       ) ∧
+       (TransEnable composeDedOverApprox (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction)) 
        )
        ==>
+       (
        (subset_comp
-        (bir_att_comptraces (composeMuRe (bir_mrel (birprog_Wresp:'observation_type bir_program_t)) AMTrn) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0),((InterpretStTwo:DYstate -> 'cstate) ESt)) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre),((InterpretStTwo:DYstate -> 'cstate) ESt)))
-        (comptraces_tree (symbolic_tree_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,T0,ESt) (Sym',P',Tre,ESt))
+        (bir_att_comptraces ((bir_mrel (birprog_Wresp:'observation_type bir_program_t)) || AMTrn) (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) T0),((InterpretStTwo:DYstate -> 'cstate) ESt))  (((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) Tre),((InterpretStTwo:DYstate -> 'cstate) ESt)))
+        (comptraces_tree (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox (Sym,P,T0,ESt) (Sym',P',Tre,ESt))
+       ) ∧
+       (TransDisable composeDedOverApprox (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction))
        ) ==>
-       ((IMAGE (MAP sbirEvent_vs_DY_to_sapicFact_vs_DY) (comptraces_tree (symbolic_tree_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,T0,ESt) (Sym',P',Tre,ESt))) ⊆
-        (comptraces_sapic (sapic_position_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',P',(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt))
+       (
+       ((IMAGE (MAP sbirEvent_vs_DY_to_sapicFact_vs_DY) (comptraces_tree (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox (Sym,P,T0,ESt) (Sym',P',Tre,ESt))) ⊆
+        (comptraces_sapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt))
+       ) ∧
+       (TransDisable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction))
        ) ==>
-       (comptraces (sapic_position_multi_transitions_with_symb,Ded) (DYmultranrel,DYdeduction)  (Sym,P,(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',P',(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt)) =
-       (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,P,(Pconfig_plus ((symbtree_to_sapic T0),0,Re0,NRe0))) (Sym',P',(Pconfig_plus ((symbtree_to_sapic Tre),i,Re,NRe))))
+       (comptraces (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig ((symbtree_to_sapic T0),0,Re0,NRe0)),ESt) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig ((symbtree_to_sapic Tre),i,Re,NRe)),ESt)) =
+       (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig_plus ((symbtree_to_sapic T0),0,Re0,NRe0))) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig_plus ((symbtree_to_sapic Tre),i,Re,NRe))))
     )
+
 
     ``,
   metis_tac[arch_Wresp_def,end_to_end_correctness_thm]
@@ -246,14 +271,14 @@ val two_birs_att_comptraces_def = Define `
 
 
 val two_sbirs_DY_comptraces_thm =
-INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:(bir_exp_t + DYpred)``,``:'state1`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event1`` |-> ``:(sbir_event + (Name_t, Sig_t, Var_t) sync_event)``,``:'pred2`` |-> ``:(bir_exp_t + DYpred)``,``:'state2`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event2`` |-> ``:(sbir_event + (Name_t, Sig_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_deductionTheory.comptraces_def;
+INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:(bir_exp_t + DYpred)``,``:'state1`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event1`` |-> ``:(sbir_event + (Name_t, Sig_t, Var_t) sync_event)``,``:'pred2`` |-> ``:(bir_exp_t + DYpred)``,``:'state2`` |-> ``:((sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree # DYstate)``,``:'event2`` |-> ``:(sbir_event + (Name_t, Sig_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_generaldeductionTheory.comptraces_def;
 val two_sbirs_DY_comptraces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) two_sbirs_DY_comptraces_thm;
 val two_sbirs_DY_comptraces_def = Define `
     two_sbirs_DY_comptraces = ^(two_sbirs_DY_comptraces_t)
                                `;
 
 val two_sapics_DY_comptraces_thm =
-INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:(bir_exp_t + DYpred)``,``:'state1`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event1`` |-> ``:(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event)``,``:'pred2`` |-> ``:(bir_exp_t + DYpred)``,``:'state2`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event2`` |-> ``:(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_deductionTheory.comptraces_def;
+INST_TYPE [``:'symb`` |-> ``:Var_t``,``:'pred1`` |-> ``:(SapicTerm_t + DYpred)``,``:'state1`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event1`` |-> ``:(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event)``,``:'pred2`` |-> ``:(SapicTerm_t + DYpred)``,``:'state2`` |-> ``:(sapic_position_configuration_t # DYstate)``,``:'event2`` |-> ``:(SapicFact_t + (Name_t, Sig_t, Var_t) sync_event)``,``:'eventS`` |-> ``:(DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event)``] derived_rules_generaldeductionTheory.comptraces_def;
 val two_sapics_DY_comptraces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) two_sapics_DY_comptraces_thm;
 val two_sapics_DY_comptraces_def = Define `
     two_sapics_DY_comptraces = ^(two_sapics_DY_comptraces_t)
@@ -279,7 +304,7 @@ val end_to_end_correctness_Winit_vs_Wresp_vs_attacker_thm = store_thm(
        (rAMTrn:(('attevent + 'ceventS), 'cstate) mctrel)
        iRe0 iNRe0 ii iRe iNRe (iT0:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (iTre:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree)
        rRe0 rNRe0 ri rRe rNRe (rT0:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree) (rTre:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree)
-        (wded3:(bir_exp_t + DYpred) tded) (wDed:(bir_exp_t) tded)
+        (wded3Tr:(bir_exp_t + DYpred) tded) (wded4Tr:((bir_exp_t + DYpred)+(bir_exp_t + DYpred)) tded) (wded3Sp:(SapicTerm_t + DYpred) tded) (wded4Sp:((SapicTerm_t + DYpred)+(SapicTerm_t + DYpred)) tded) (sbir_Ded:(bir_exp_t) tded) (sapic_Ded:(SapicTerm_t) tded) 
        (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:((bir_exp_t + DYpred) -> bool)) (P':((bir_exp_t + DYpred) -> bool)).
 
     ^lifter_Winit_t ==>  
@@ -301,6 +326,7 @@ val end_to_end_correctness_Winit_vs_Wresp_vs_attacker_thm = store_thm(
     ~bir_state_is_terminated ((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) iTre) ==>
     ~bir_state_is_terminated ((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) rTre) ==>
     (∃ims' rms'.
+(
        (
        (two_arm8s_att_comptraces ((((arm8_mrel arm8prog_Winit):('cevent + 'ceventS, arm8_state) mctrel) || iAMTrn) || (((arm8_mrel arm8prog_Wresp):('cevent + 'ceventS, arm8_state) mctrel) || rAMTrn))
         ((ims,((InterpretStTwo:DYstate -> 'cstate) ESt)),(rms,((InterpretStTwo:DYstate -> 'cstate) ESt)))
@@ -309,38 +335,47 @@ val end_to_end_correctness_Winit_vs_Wresp_vs_attacker_thm = store_thm(
        (two_birs_att_comptraces ((((bir_mrel (birprog_Winit:'observation_type bir_program_t)):('cevent + 'ceventS, bir_state_t) mctrel) || iAMTrn) || (((bir_mrel (birprog_Wresp:'observation_type bir_program_t)):('cevent + 'ceventS, bir_state_t) mctrel) || rAMTrn))
         ((((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) iT0),((InterpretStTwo:DYstate -> 'cstate) ESt)),(((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) rT0),((InterpretStTwo:DYstate -> 'cstate) ESt)))
         ((((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) iTre),((InterpretStTwo:DYstate -> 'cstate) ESt)),(((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) rTre),((InterpretStTwo:DYstate -> 'cstate) ESt))))
-       )
-       ==>
+       )∧
+       (TransEnable composeDedOverApprox (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction)) 
+) ==>
+(
        (subset_comp
         (two_birs_att_comptraces ((((bir_mrel (birprog_Winit:'observation_type bir_program_t)):('cevent + 'ceventS, bir_state_t) mctrel) || iAMTrn) || (((bir_mrel (birprog_Wresp:'observation_type bir_program_t)):('cevent + 'ceventS, bir_state_t) mctrel) || rAMTrn))
          ((((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) iT0),((InterpretStTwo:DYstate -> 'cstate) ESt)),(((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) rT0),((InterpretStTwo:DYstate -> 'cstate) ESt)))
          ((((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) iTre),((InterpretStTwo:DYstate -> 'cstate) ESt)),(((InterpretStOne:(sbir_event, real,(bir_var_t, bir_exp_t) symb_interpret_t) stree -> bir_state_t) rTre),((InterpretStTwo:DYstate -> 'cstate) ESt))))
-        (two_sbirs_DY_comptraces ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3)
-         ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3) 
+        (two_sbirs_DY_comptraces ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox),wded3Tr)
+         ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox),wded3Tr) wded4Tr
          (Sym,((IMAGE INL P):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),(iT0,ESt),(rT0,ESt)) (Sym',((IMAGE INL P'):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),(iTre,ESt),(rTre,ESt)))
-       ) ==>
+       )∧
+       (TransDisable composeDedOverApprox (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction))
+) ==>
+  (
        ((IMAGE (MAP (OPTION_MAP (SUM_MAP sbirEvent_vs_DY_to_sapicFact_vs_DY_no_option sbirEvent_vs_DY_to_sapicFact_vs_DY_no_option)))
-         (two_sbirs_DY_comptraces ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3)
-          ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3) 
+         (two_sbirs_DY_comptraces ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox),wded3Tr)
+          ((symbolicParlComp (symbolic_tree_multi_transitions_with_symb,sbir_Ded) (DYmultranrel,DYdeduction) composeDedOverApprox),wded3Tr) wded4Tr
           (Sym,((IMAGE INL P):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),(iT0,ESt),(rT0,ESt)) (Sym',((IMAGE INL P'):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),(iTre,ESt),(rTre,ESt))))
         ⊆
-        (two_sapics_DY_comptraces ((symbolicParlComp (sapic_position_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3)
-         ((symbolicParlComp (sapic_position_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3) 
-         (Sym,((IMAGE INL P):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iT0),0,iRe0,iNRe0)),ESt),((Pconfig ((symbtree_to_sapic rT0),0,rRe0,rNRe0)),ESt))
-         (Sym',((IMAGE INL P'):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iTre),ii,iRe,iNRe)),ESt),((Pconfig ((symbtree_to_sapic rTre),ri,rRe,rNRe)),ESt)))
+        (two_sapics_DY_comptraces ((symbolicParlComp (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic),wded3Sp)
+         ((symbolicParlComp (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic),wded3Sp) wded4Sp
+         (Sym,((IMAGE INL (IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P)):((SapicTerm_t + DYpred) + (SapicTerm_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iT0),0,iRe0,iNRe0)),ESt),((Pconfig ((symbtree_to_sapic rT0),0,rRe0,rNRe0)),ESt))
+         (Sym',((IMAGE INL (IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P')):((SapicTerm_t + DYpred) + (SapicTerm_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iTre),ii,iRe,iNRe)),ESt),((Pconfig ((symbtree_to_sapic rTre),ri,rRe,rNRe)),ESt)))
+       )∧
+       (TransDisable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction))
        ) ==>
        (
-       (two_sapics_DY_comptraces ((symbolicParlComp (sapic_position_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3)
-        ((symbolicParlComp (sapic_position_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction)),wded3) 
-        (Sym,((IMAGE INL P):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iT0),0,iRe0,iNRe0)),ESt),((Pconfig ((symbtree_to_sapic rT0),0,rRe0,rNRe0)),ESt))
-        (Sym',((IMAGE INL P'):((bir_exp_t + DYpred) + (bir_exp_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iTre),ii,iRe,iNRe)),ESt),((Pconfig ((symbtree_to_sapic rTre),ri,rRe,rNRe)),ESt)))
+       (two_sapics_DY_comptraces ((symbolicParlComp (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic),wded3Sp)
+        ((symbolicParlComp (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic),wded3Sp) wded4Sp
+        (Sym,((IMAGE INL (IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P)):((SapicTerm_t + DYpred) + (SapicTerm_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iT0),0,iRe0,iNRe0)),ESt),((Pconfig ((symbtree_to_sapic rT0),0,rRe0,rNRe0)),ESt))
+        (Sym',((IMAGE INL (IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P')):((SapicTerm_t + DYpred) + (SapicTerm_t + DYpred) -> bool)),((Pconfig ((symbtree_to_sapic iTre),ii,iRe,iNRe)),ESt),((Pconfig ((symbtree_to_sapic rTre),ri,rRe,rNRe)),ESt)))
        =
        (IMAGE (MAP (OPTION_MAP INL))
-        (comptraces_sapic (sapic_position_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction) (Sym,P,(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iT0) (symbtree_to_sapic rT0)),0,(sapic_renaming_extend iRe0 rRe0),(sapic_name_renaming_extend iNRe0 rNRe0))),ESt) (Sym',P',(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iTre) (symbtree_to_sapic rTre)),(ii + ri),(sapic_renaming_extend iRe rRe),( sapic_name_renaming_extend iNRe rNRe))),ESt)))
+        (comptraces_sapic (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iT0) (symbtree_to_sapic rT0)),0,(sapic_renaming_extend iRe0 rRe0),(sapic_name_renaming_extend iNRe0 rNRe0))),ESt) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iTre) (symbtree_to_sapic rTre)),(ii + ri),(sapic_renaming_extend iRe rRe),( sapic_name_renaming_extend iNRe rNRe))),ESt)))
        ) ==>
-       (comptraces (sapic_position_multi_transitions_with_symb,wDed) (DYmultranrel,DYdeduction) (Sym,P,(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iT0) (symbtree_to_sapic rT0)),0,(sapic_renaming_extend iRe0 rRe0),(sapic_name_renaming_extend iNRe0 rNRe0))),ESt) (Sym',P',(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iTre) (symbtree_to_sapic rTre)),(ii + ri),(sapic_renaming_extend iRe rRe),(sapic_name_renaming_extend iNRe rNRe))),ESt)) 
+       (comptraces (sapic_position_multi_transitions_with_symb,sapic_Ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iT0) (symbtree_to_sapic rT0)),0,(sapic_renaming_extend iRe0 rRe0),(sapic_name_renaming_extend iNRe0 rNRe0))),ESt) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig ((ProcessComb Parallel (symbtree_to_sapic iTre) (symbtree_to_sapic rTre)),(ii + ri),(sapic_renaming_extend iRe rRe),(sapic_name_renaming_extend iNRe rNRe))),ESt)) 
        =
-       (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,P,(Pconfig_plus ((ProcessComb Parallel (symbtree_to_sapic iT0) (symbtree_to_sapic rT0)),0,(sapic_renaming_extend iRe0 rRe0),(sapic_name_renaming_extend iNRe0 rNRe0)))) (Sym',P',(Pconfig_plus ((ProcessComb Parallel (symbtree_to_sapic iTre) (symbtree_to_sapic rTre)),(ii + ri),(sapic_renaming_extend iRe rRe),( sapic_name_renaming_extend iNRe rNRe)))))
+       (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P),(Pconfig_plus ((ProcessComb Parallel (symbtree_to_sapic iT0) (symbtree_to_sapic rT0)),0,(sapic_renaming_extend iRe0 rRe0),(sapic_name_renaming_extend iNRe0 rNRe0)))) (Sym',(IMAGE (SUM_MAP translate_birexp_to_sapicterm I) P'),(Pconfig_plus ((ProcessComb Parallel (symbtree_to_sapic iTre) (symbtree_to_sapic rTre)),(ii + ri),(sapic_renaming_extend iRe rRe),( sapic_name_renaming_extend iNRe rNRe)))))
     )
 
     ``,
@@ -356,7 +391,7 @@ val end_to_end_correctness_Winit_vs_Wresp_vs_attacker_thm = store_thm(
   metis_tac[comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm]
   )
 
-*)
+
 
   
 val _ = export_theory();
