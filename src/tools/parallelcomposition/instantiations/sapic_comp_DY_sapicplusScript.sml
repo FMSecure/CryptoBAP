@@ -12,6 +12,7 @@ open sbir_treeTheory;
 open sapicplusTheory;
 open messagesTheory;
 open dolevyaoTheory;
+open combined_deductionTheory;
 
 val _ = new_theory "sapic_comp_DY_sapicplus";
 
@@ -582,7 +583,7 @@ val sapic_vs_DY_to_spaicplus_multi_transitions_thm = store_thm(
 
 val sapic_vs_DY_EQ_spaicplus_multi_transitions_thm = store_thm(
   "sapic_vs_DY_EQ_spaicplus_multi_transitions_thm",
-  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (Ded:('SPpred) tded) (ded3:('SPpred + DYpred) tded).
+  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SapicTerm_t + DYpred -> bool)) (P':(SapicTerm_t + DYpred -> bool)) (Ded:(SapicTerm_t) tded) (ded3:(SapicTerm_t + DYpred) tded).
        (∃t1 t2.
           sapic_position_multi_transitions_with_symb (Sym,IMAGE OUTL P,(Pconfig (Pr0,0,Re0,NRe0))) t1
                                                      (Sym',IMAGE OUTL P',(Pconfig (Pr,i,Re,NRe))) ∧
@@ -597,19 +598,36 @@ val sapic_vs_DY_EQ_spaicplus_multi_transitions_thm = store_thm(
      rewrite_tac[spaicplus_to_sapic_vs_DY_multi_transitions_thm] 
   )
 
-(*
+
 val comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm = store_thm(
   "comptraces_sapic_vs_DY_EQ_sapic_plus_traces_thm",
-  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:('SPpred + DYpred -> bool)) (P':('SPpred + DYpred -> bool)) (ded:('SPpred) tded).
-       (comptraces (sapic_position_multi_transitions_with_symb,ded) (DYmultranrel,DYdeduction) (Sym,P,(Pconfig (Pr0,0,Re0,NRe0)),ESt) (Sym',P',(Pconfig (Pr,i,Re,NRe)),ESt)) =
-     (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,P,(Pconfig_plus (Pr0,0,Re0,NRe0))) (Sym',P',(Pconfig_plus (Pr,i,Re,NRe))))``,
-                                                                                                                                                       rewrite_tac[binterleave_composition_deduction,binterleave_ts]>>
-     rewrite_tac[sapic_plus_traces_def]>>
-     rewrite_tac[traces_def]>>
-     FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [EXTENSION]>>
-     rewrite_tac[sapic_vs_DY_EQ_spaicplus_multi_transitions_thm]
-  )                       
+  ``∀t Re0 NRe0 i Re NRe Pr0 Pr (Sym:(Var_t -> bool)) (Sym':(Var_t -> bool)) (P:(SapicTerm_t + DYpred -> bool)) (P':(SapicTerm_t + DYpred -> bool)) (ded:(SapicTerm_t) tded).
+       (
+       (TransDisable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,ded) (DYmultranrel,DYdeduction)) ∧
+       (TransEnable composeDedOverApproxSapic (sapic_position_multi_transitions_with_symb,ded) (DYmultranrel,DYdeduction))
+       )⇒
+       (
+       (comptraces (sapic_position_multi_transitions_with_symb,ded) (DYmultranrel,DYdeduction) composeDedOverApproxSapic (Sym,P,(Pconfig (Pr0,0,Re0,NRe0)),ESt) (Sym',P',(Pconfig (Pr,i,Re,NRe)),ESt)) =
+       (sapic_plus_traces sapic_plus_position_multi_transitions_with_symb (Sym,P,(Pconfig_plus (Pr0,0,Re0,NRe0))) (Sym',P',(Pconfig_plus (Pr,i,Re,NRe))))
+       )``,
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [binterleave_ts,traces_def,comptraces_def,EXTENSION,sapic_plus_traces_def,IN_DEF,SUBSET_INTER_ABSORPTION,INTER_DEF] >>
+     rw[] >>
+     EQ_TAC >-(
+      rw[] >>
+      IMP_RES_TAC binterleave_composition_generaldeduction_subseteq >>
+      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [binterleave_ts,traces_def,comptraces_def,EXTENSION,sapic_plus_traces_def,IN_DEF,SUBSET_INTER_ABSORPTION,INTER_DEF] >>
+      PAT_X_ASSUM ``!Sym' Sym S2' S2 S1' S1 P' P x. A`` (ASSUME_TAC o (Q.SPECL [`Sym'`,`Sym`,`ESt`,`ESt`,`Pconfig (Pr,i,Re,NRe)`,`Pconfig (Pr0,0,Re0,NRe0)`,`P'`,`P`,`x`])) >>
+      RES_TAC >>
+      metis_tac[sapic_vs_DY_EQ_spaicplus_multi_transitions_thm] 
+      ) >>
+      rw[] >>
+      IMP_RES_TAC binterleave_composition_generaldeduction_supseteq >>
+      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [binterleave_ts,traces_def,comptraces_def,EXTENSION,sapic_plus_traces_def,IN_DEF,SUBSET_INTER_ABSORPTION,INTER_DEF] >>
+      PAT_X_ASSUM ``!Sym' Sym S2' S2 S1' S1 P' P x. A`` (ASSUME_TAC o (Q.SPECL [`Sym'`,`Sym`,`ESt`,`ESt`,`Pconfig (Pr,i,Re,NRe)`,`Pconfig (Pr0,0,Re0,NRe0)`,`P'`,`P`,`x`])) >>
+      RES_TAC >>
+      metis_tac[sapic_vs_DY_EQ_spaicplus_multi_transitions_thm] 
+)
 
-*)
+
 
 val _ = export_theory();
