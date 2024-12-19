@@ -28,6 +28,10 @@ Define `
          (ded3 P3 F3)
          ))`;
 
+val RevDed_def =
+Define `
+       (RevDed (ded:('pred1 + 'pred2) tded) phi p  =  (∀(n: 'pred2 -> 'pred1) (m: 'pred1 -> 'pred2). ded (IMAGE (SUM_MAP n m) phi) ((SUM_MAP n m) p))
+       )`;         
 (* multi transitions relation *)
 val _ = Parse.type_abbrev("mtrel", ``:(('symb set) # ('pred set) # 'state) -> (('event option) list) -> (('symb set) # ('pred set) # 'state) -> bool``);
 
