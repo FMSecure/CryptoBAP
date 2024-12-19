@@ -118,13 +118,13 @@ metis_tac[OUTR_INL_FUN]
   metis_tac[OUTL_INR_FUN]
 )
 
-       
+
 val symmetry_generaldeduction_thm = store_thm(
-  " symmetry_generaldeduction",
+  "symmetry_generaldeduction",
   ``∀t f g  n m Sym P P' S1 S2 Sym' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
        (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,P,S1,S2) t (Sym',P',S1',S2'))
      =
-     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) (RevDed ded3) (Sym,(IMAGE (SUM_MAP n m) P),S2,S1) (MAP (OPTION_MAP (SUM_MAP f g)) t) (Sym',(IMAGE (SUM_MAP n m) P'),S2',S1')) 
+     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) (RevDed ded3) (Sym,(IMAGE (SUM_MAP n m) P),S2,S1) (MAP (OPTION_MAP (SUM_MAP (SUM_MAP f I) (SUM_MAP g I))) t) (Sym',(IMAGE (SUM_MAP n m) P'),S2',S1')) 
  ``,
  GEN_TAC >>
      Induct_on `t` >- (
@@ -197,269 +197,91 @@ val symmetry_generaldeduction_thm = store_thm(
       ) >>
      Cases_on ‘x’ >- (
       Cases_on ‘x'’ >- (
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def,OPTION_MAP_CASE,MAP,option_case_def] >>
         rpt strip_tac >>
         EQ_TAC >- (
-          rw[OPTION_MAP_CASE,MAP,option_case_def] >>
-
-                    
-          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
-          rpt strip_tac >>
-          rpt strip_tac >>
-          PAT_X_ASSUM ``!f g n m Sym P P' S1 S2 Sym' S1' S2' MTrn1 MTrn2 ded1 ded2 ded3. A`` (ASSUME_TAC o (Q.SPECL [‘f’, ‘g’, ‘n’, ‘m’, ‘Sym’, ‘P’, ‘P'''’, ‘S1’, ‘S2’, ‘Sym'''’, ‘S1'''’, ‘S2'’, ‘MTrn1’, ‘MTrn2’, ‘ded1’, ‘ded2’, ‘ded3’])) >>
-          RES_TAC >>
-          IMP_RES_TAC TranRelSnocBack
-
-
-
-
-
-
-        
-IMP_RES_TAC TranRelSnoc >>
-PAT_X_ASSUM ``!v'' s'' p'' e. A`` (ASSUME_TAC o (Q.SPECL [‘Sym'’,‘S1',S2'’,‘P'’,‘SOME (INL (INL x))’])) >>
-PAT_X_ASSUM ``!v'' s'' p'' e. A`` (ASSUME_TAC o (Q.SPECL [‘Sym'’,‘S2',S1'’,‘IMAGE (SUM_MAP (n: 'pred1 -> 'pred2) (m: 'pred2 -> 'pred1)) P'’,‘SOME (INL ((f: 'event1 + 'eventS -> 'event2 + 'eventS) (INL x)))’])) >>
-PAT_X_ASSUM ``!v'' s'' p'' e. A`` (ASSUME_TAC o (Q.SPECL [‘Sym'’,‘S1',S2'’,‘P'’,‘SOME (INL (INL x))’])) >>
-RES_TAC
-
-
-PAT_X_ASSUM ``!v'' s'' p'' e. A`` (ASSUME_TAC o (Q.SPECL [‘Sym'’,‘S1',S2'’,‘P'’,‘SOME (INL (INL x))’])) >>
-rw[TranRelSnocBack]
-                
-IMP_RES_TAC TranRelSnocRevAsyncL >>
-          Q.EXISTS_TAC `Sym''` >>
-          Q.EXISTS_TAC `P''` >>
-Q.EXISTS_TAC `S1''` >>
-             IMP_RES_TAC TranRelSnoc
-          rw[TranRelConfigEq,TranRelSnoc]
-
-
-
-
-        
- metis_tac[TranRelNil,TranRelSnoc,TranRelConfigEq]
-          )
-
-
-
-              )
-
-
-
-              )
-
-  )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      (
-          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
-          rpt strip_tac >>
-          EQ_TAC >- (
-            rpt strip_tac >>
-            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[RevDed_def] >>
-            Q.EXISTS_TAC `IMAGE (SUM_MAP n m) P''` >>
-            rw[] >- (
-                  PAT_X_ASSUM ``!phi. A`` (ASSUME_TAC o (Q.SPECL [`((SUM_MAP (m: 'pred2 -> 'pred1) (n: 'pred1 -> 'pred2)) phi)`])) >>
-
-                  FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[combineAllDed_def] >- (
-
-            Cases_on ‘phi’ >- (
-
-FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[composeDed_def] >>
-metis_tac[IMAGE_SUM_MAP_R2L_thm]
-
-                     )
-            )
-                                                                                                                                                
-              )
-
-            )
-
-          )
-
-
-
-
-                      
-∀ P n m.
-IMAGE OUTR P = IMAGE OUTL (IMAGE (SUM_MAP n m) P)
-
-      rpt strip_tac >>
-      Cases_on ‘P’ >-(
- FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
-  ) >>
- FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_INSERT,SUM_MAP_CASE] >>
-  Cases_on ‘x’ >- (
- FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >>
-metis_tac[OUTR_INL_FUN]
-) >>
- FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >> 
-  metis_tac[OUTL_INR_FUN]
-
- 
-   FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_INSERT,SUM_MAP_CASE]
-    FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
-    FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def]
-metis_tac[OUTR_INL_FUN]
-
-        
-∀x n.
- OUTR (INL x) = n x
-      
-∀x n.
- OUTL (INR x) = n x
- 
-rpt strip_tac >>
-      PAT_X_ASSUM ``!phi. A`` (ASSUME_TAC o (Q.SPECL [`phi`])) >>
-      PAT_X_ASSUM ``!Sym P S1 S2 Sym' P' S1' S2' MTrn1 MTrn2 ded1 ded2 ded3. A`` (ASSUME_TAC o (Q.SPECL [`Sym`,`P`,`S1`,`S2`,`Sym'`,`P''`,`S1'`,`S2'`,`MTrn1`,`MTrn2`,`ded1`,`ded2`,`ded3`]))>>
-      RES_TAC >>
-      Q.EXISTS_TAC `t1` >>
-      Q.EXISTS_TAC `t2` >>
-      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]>>
-      metis_tac[] 
-                        
-
-                
-            PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`(INR b)`])) >>
-                 rw[] >>
-                 RES_TAC
-
-              )
-                       
-               )     
-        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def,disjUNION_def,IMAGE_DEF] >>
-
-,UNION_DEF,EXTENSION
-,sum_CASES,FORALL_SUM
-FORALL_SUM
- FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[disjUNION_def]
-
- FULL_SIMP_TAC (list_ss) [SUM_UNIV]
-
-SUM_UNIV
-GSPEC_OR
-        )
-                        
-    )            
-                   
-      rpt strip_tac >>
-      EQ_TAC >-(
-             FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def,disjUNION_def]
-
-               )
-      Q.EXISTS_TAC `[]` >>
-      Q.EXISTS_TAC `[]` >>
-      metis_tac[binterl_nil]) >>
-     gen_tac >>
-     Cases_on `h` >- (
-
-
-
-        )
-      )
-  )
-
-
-
-
-val two_sapics_DY_comptraces_thm =
-INST_TYPE [``:'pred1`` |-> ``:'pred2``,``:'pred2`` |-> ``:'pred1``] (ded:('pred1 + 'pred2) tded);
-val two_sapics_DY_comptraces_t = (fst o strip_comb o fst o dest_eq o snd o strip_forall o concl) two_sapics_DY_comptraces_thm;
-val two_sapics_DY_comptraces_def = Define `
-    two_sapics_DY_comptraces = ^(two_sapics_DY_comptraces_t)
-`;
-
-
-        val RevDed_def =
-Define `
-       (RevDed (ded:('pred1 + 'pred2) tded) phi p  =  (∀(n: 'pred2 -> 'pred1) (m: 'pred1 -> 'pred2). ded (IMAGE (SUM_MAP n m) phi) ((SUM_MAP n m) p))
-)`;
-  
- ∀(ded:('pred1 + 'pred2) tded) phi (n: 'pred1 -> 'pred2) (m: 'pred2 -> 'pred1) p. ded phi p ⇒ (SUM_REV ded) (IMAGE (SUM_MAP n m) phi) ((SUM_MAP n m) p)
-       
-OPTION_MAP_CASE,MAP,option_case_def
-
-∀t f g  n m Sym P P' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
-       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,P,S1,S2) t (Sym',P',S1',S2'))
-     =
-     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(IMAGE (SUM_MAP n m) P),S2,S1) (MAP (OPTION_MAP (SUM_MAP f g)) t) (Sym',(IMAGE (SUM_MAP n m) P'),S2',S1')) 
-
-
-option_case_def
-  
-val symmetry_generaldeduction_thm = store_thm(
-  " symmetry_generaldeduction",
-  ``∀(t1:('event1 + 'eventS) option list) (t2:('event2 + 'eventS) option list) Sym P1 P2 P1' P2' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
-       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,(P1 ⊔ P2),S1,S2) (MAP SOME (APPEND (MAP (INL o THE) t1) (MAP (INR o THE) t2))) (Sym',(P1' ⊔ P2'),S1',S2'))
-     =
-     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(P2 ⊔ P1),S2,S1) (MAP SOME (APPEND (MAP (INL o THE) t2) (MAP (INR o THE) t1))) (Sym',(P2' ⊔ P1'),S2',S1')) ``,
-     GEN_TAC >>
-     Induct_on `t1` >- (
-      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[] >>
-      GEN_TAC >>
-      Induct_on `t2` >- (
-           rpt strip_tac >>
-      EQ_TAC >-(
-          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
-          rw[] >-(
-          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[disjUNION_def,UNION_DEF,EXTENSION] >>
-          GEN_TAC >>
-          EQ_TAC >-(
-                 rw[] >- (
-                 PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`(INR a)`])) >>
-                 rw[] >>
-                 RES_TAC
-                 ) >>
-                 PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`(INL b)`])) >>
-                 rw[] >>
-                 RES_TAC               
+          rw[TranRelNil] >>
+          Q.EXISTS_TAC `IMAGE (SUM_MAP (n: 'pred1 -> 'pred2) (m: 'pred2 -> 'pred1)) P'''` >>
+            Cases_on ‘P'’ >-(
+              FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
               ) >>
-          rw[] >- (
-                 PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`(INR a)`])) >>
-                 rw[] >>
-                 RES_TAC
-                 ) >>
-                 PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`(INL b)`])) >>
-                 rw[] >>
-                 RES_TAC    
-            ) (*Proved P2 ⊔ P1 = P2' ⊔ P1' *) >- (
-            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[OUTL_disjUNION,OUTR_disjUNION] 
-            ) >>
-          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[OUTL_disjUNION,OUTR_disjUNION]
+            Cases_on ‘P'''’ >-(
+              FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+              ) >>
+            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_INSERT,SUM_MAP_CASE] >>
+            Cases_on ‘x'’ >- (
+              FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >>
+              metis_tac[OUTR_INL_FUN]
+              ) >>
+            FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >> 
+            metis_tac[OUTL_INR_FUN]
+          ) >>
+        rw[TranRelNil] >>
+        Q.EXISTS_TAC `IMAGE (SUM_MAP (m: 'pred2 -> 'pred1) (n: 'pred1 -> 'pred2)) P'''` >>
+        Cases_on ‘P'’ >-(
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+          ) >>
+        Cases_on ‘P'''’ >-(
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+          ) >>
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_INSERT,SUM_MAP_CASE] >>
+        Cases_on ‘x'’ >- (
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >>
+          metis_tac[OUTR_INL_FUN]
+          ) >>
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >> 
+        metis_tac[OUTL_INR_FUN]
+        ) >>
+FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def,OPTION_MAP_CASE,MAP,option_case_def] >>
+        rpt strip_tac >>
+      EQ_TAC >- (
+        rw[TranRelNil] ) >>
+      rw[TranRelNil]
+      ) >>
+      Cases_on ‘y’ >- (
+      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def,OPTION_MAP_CASE,MAP,option_case_def] >>
+        rpt strip_tac >>
+      EQ_TAC >- (
+        rw[TranRelNil] >>
+                       Q.EXISTS_TAC `IMAGE (SUM_MAP (n: 'pred1 -> 'pred2) (m: 'pred2 -> 'pred1)) P'''` >>
+        Cases_on ‘P'’ >-(
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+          ) >>
+        Cases_on ‘P'''’ >-(
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+          ) >>
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_INSERT,SUM_MAP_CASE] >>
+        Cases_on ‘x'’ >- (
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >>
+          metis_tac[OUTR_INL_FUN]
+          ) >>
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >> 
+        metis_tac[OUTL_INR_FUN]) >>
+      rw[TranRelNil] >>
+                      Q.EXISTS_TAC `IMAGE (SUM_MAP (m: 'pred2 -> 'pred1) (n: 'pred1 -> 'pred2)) P'''` >>
+Cases_on ‘P'’ >-(
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+          ) >>
+        Cases_on ‘P'''’ >-(
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[]
+          ) >>
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[IMAGE_INSERT,SUM_MAP_CASE] >>
+        Cases_on ‘x'’ >- (
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >>
+          metis_tac[OUTR_INL_FUN]
+          ) >>
+        FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[sum_case_def] >> 
+        metis_tac[OUTL_INR_FUN]
+      ) >>
+     FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def,OPTION_MAP_CASE,MAP,option_case_def] >>
+        rpt strip_tac >>
+      EQ_TAC >- (
+        rw[TranRelNil] ) >>
+     rw[TranRelNil]
+)
 
-                                
-∀t f g  n m Sym P P' S1 S2 Sym' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
-       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,P,S1,S2) t (Sym',P',S1',S2'))
-     =
-     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) (RevDed ded3) (Sym,(IMAGE (SUM_MAP n m) P),S2,S1) (MAP (OPTION_MAP (SUM_MAP (SUM_MAP f I) (SUM_MAP g I))) t) (Sym',(IMAGE (SUM_MAP n m) P'),S2',S1')) 
 
-            
-  val symmetry_generaldeduction_thm = store_thm(
-  " symmetry_generaldeduction",
-  ``∀(t1:('event1 + 'eventS) option list) (t2:('event2 + 'eventS) option list) Sym P1 P2 P1' P2' S1 S2 Sym' P' S1' S2'  (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) (ded4:('pred2 + 'pred1) tded).
-       (symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) ded3 (Sym,(P1 ⊔ P2),S1,S2) (MAP SOME (APPEND (MAP (INL o THE) t1) (MAP (INR o THE) t2))) (Sym',(P1' ⊔ P2'),S1',S2'))
-     =
-     (symbolicParlComp (MTrn2,ded2) (MTrn1,ded1) ded4 (Sym,(P2 ⊔ P1),S2,S1) (MAP SOME (APPEND (MAP (INL o THE) t2) (MAP (INR o THE) t1))) (Sym',(P2' ⊔ P1'),S2',S1'))
-     ``,
-*)
+
 val binterleave_trace_comp_to_decomp_generaldeduction_thm = store_thm(
   "binterleave_trace_comp_to_decomp_generaldeduction",
   ``∀t Sym P S1 S2 Sym' P' S1' S2' (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded).
