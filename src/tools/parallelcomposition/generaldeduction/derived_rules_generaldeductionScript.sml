@@ -21,43 +21,6 @@ Define`
  (symbolicParlComp (MTrn1,Ded1) (MTrn2,Ded2) ded3 (Sym,P,S1,S2) t (Sym',P',S1',S2'))
 }
 `;
-
-val doubleLeftMTrn_def =
-Define`
-      doubleLeftMTrn (MTrn:('event + 'eventS, 'pred, 'state, 'symb) mtrel) (v,(p: ('predL + 'pred) -> bool),(c:'stateL),s) (t:(('event + 'eventS)+('eventL + 'eventS)) option list) (v',(p': ('predL + 'pred) -> bool),(c':'stateL),s')  = (MTrn (v,(IMAGE OUTR p),s) (MAP (OPTION_MAP OUTL) t) (v',(IMAGE OUTR p'),s'))
-`;
-
-val doubleRightMTrn_def =
-Define`
-      doubleRightMTrn (MTrn:('event + 'eventS, 'pred, 'state, 'symb) mtrel) (v,(p: ('pred + 'predR) -> bool),s,(c:'stateR)) (t:(('event + 'eventS)+('eventR + 'eventS)) option list) (v',(p': ('pred + 'predR) -> bool),s',(c':'stateR))  = (MTrn (v,(IMAGE OUTL p),s) (MAP (OPTION_MAP OUTL) t) (v',(IMAGE OUTL p'),s'))
-`;
-
-
-val doubleLeftDed_def =
-Define `
-       (doubleLeftDed (ded: ('pred) tded) (p: ('predL + 'pred) -> bool) (phi: ('predL + 'pred))  =  (ded (IMAGE OUTR p) (OUTR phi))
-       )`;  
-        
-val doubleRightDed_def =
-Define `
-       (doubleRightDed (ded: ('pred) tded) (p: ('pred + 'predR) -> bool) (phi: ('pred + 'predR))  =  (ded (IMAGE OUTL p) (OUTL phi))
-       )`;
-
-       
-val prSum_def =
-Define`
-      prSum (P :(('pred1 + 'pred2) + ('pred1 + 'pred2) + 'pred3) -> bool) (P' :('pred1 + 'pred2 + 'pred3) + 'pred2 + 'pred3) =
-(∀x. (x ∈ P) ∧
-(case x of
-  INL (INL (ll : 'pred1)) => (ll = (OUTL (OUTL P')))
-| INR (INR (rr: 'pred3)) => (rr = (OUTR (OUTR P')))
-| INL (INR (lr : 'pred2)) => (lr = (OUTL (OUTR (OUTL P'))))
-| INR (INL (INL (rll : 'pred1))) => (rll = (OUTL (OUTL P')))
-| INR (INL (INR (rlr : 'pred2))) => (rlr = (OUTL (OUTR P')))
-))
-`;
-
-
         
 val IMAGE_SUM_MAP_Eq_thm = store_thm(
   "IMAGE_SUM_MAP_Eq",
@@ -323,19 +286,72 @@ val associativity_generaldeduction_thm = store_thm(
   "associativity_generaldeduction",
   ``∀(t:((('event1 + 'eventS)+('event2 + 'eventS))+(('event3 + 'eventS)+('event2 + 'eventS))) option list) (f: 'event3 -> 'event2) (g: 'event2 -> 'event3) (n: 'pred1 -> 'pred3) (Sym:('symb -> bool)) (Sym':('symb -> bool)) (P :(('pred1 + 'pred2) + ('pred1 + 'pred2) + 'pred3) -> bool) (P' :(('pred1 + 'pred2) + ('pred1 + 'pred2) + 'pred3) -> bool) (S1: 'state1) (S2: 'state2) (S3: 'state3) (S1': 'state1) (S2': 'state2) (S3': 'state3)
        (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (MTrn3:('event3 + 'eventS, 'pred3, 'state3, 'symb) mtrel)
-       (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred3) tded) (Comded12:('pred1 + 'pred2) tded) (dedCom12:('pred1 + 'pred2) tded) (Comded3:(('pred1 + 'pred2) + ('pred1 + 'pred2) + 'pred3) tded)
-       (Comded23:('pred2 + 'pred3) tded) (dedCom23:('pred2 + 'pred3) tded) (Comded1:(('pred1 + 'pred2 + 'pred3) + 'pred2 + 'pred3) tded).
+       (ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred3) tded) (Comded12:('pred1 + 'pred2) tded) (Comded3:(('pred1 + 'pred2) + ('pred1 + 'pred2) + 'pred3) tded)
+       (Comded23:('pred2 + 'pred3) tded) (Comded1:(('pred1 + 'pred2 + 'pred3) + 'pred2 + 'pred3) tded).
                          
        (symbolicParlComp
-        (((symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) Comded12):((('event1+'eventS) + ('event2 +'eventS)), ('pred1 + 'pred2), 'state1 # 'state2, 'symb) mtrel),dedCom12)
+        (((symbolicParlComp (MTrn1,ded1) (MTrn2,ded2) Comded12):((('event1+'eventS) + ('event2 +'eventS)), ('pred1 + 'pred2), 'state1 # 'state2, 'symb) mtrel),Comded12)
         (((doubleLeftMTrn MTrn3:((('event3+'eventS) + ('event2 +'eventS)), (('pred1 + 'pred2) + 'pred3), ('state1 # 'state2) # 'state3, 'symb) mtrel)),((doubleLeftDed ded3):(('pred1 + 'pred2) + 'pred3) tded))
         Comded3 (Sym,P,(S1,S2),(S1,S2),S3) t (Sym',P',(S1',S2'),(S1',S2'),S3')) =
      (symbolicParlComp
       (((doubleRightMTrn MTrn1):((('event1+'eventS) + ('event3 +'eventS)), ('pred1 + ('pred2 + 'pred3)), ('state1 # ('state2 # 'state3)), 'symb) mtrel),((doubleRightDed ded1):('pred1 + ('pred2 + 'pred3)) tded))
-      (((symbolicParlComp (MTrn2,ded2) (MTrn3,ded3) Comded23):((('event2+'eventS) + ('event3 +'eventS)), ('pred2 + 'pred3), 'state2 # 'state3, 'symb) mtrel),dedCom23)
+      (((symbolicParlComp (MTrn2,ded2) (MTrn3,ded3) Comded23):((('event2+'eventS) + ('event3 +'eventS)), ('pred2 + 'pred3), 'state2 # 'state3, 'symb) mtrel),Comded23)
       Comded1 (Sym,(prSum P),(S1,S2,S3),S2,S3) (MAP (OPTION_MAP (SUM_MAP (SUM_MAP (SUM_MAP I I) (SUM_MAP g I)) (SUM_MAP (SUM_MAP f I) (SUM_MAP g I)))) t) (Sym',(prSum P'),(S1',S2',S3'),S2',S3'))
-    ``,
-cheat
+     ``,
+
+ rw[TranRelNil]
+
+
+
+ (*      
+ GEN_TAC >>
+     Induct_on `t` >- (
+      rpt strip_tac >>
+      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
+      rw[TranRelNil]>>
+      metis_tac[prSum_Eq]
+      ) >>
+     gen_tac >>
+     Cases_on `h` >-(
+      rpt strip_tac >>
+      FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
+      rw[TranRelNil]>>
+      EQ_TAC >-(
+        rw[] >>
+        Q.EXISTS_TAC `prSum P''` >>
+        reverse(rw[]) >- (
+          FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[UNION_DEF,EXTENSION] >>
+          rw[] >>
+            EQ_TAC >-(
+            rw[] >>
+            Cases_on ‘P'’ >- (
+Cases_on ‘x'’ >- (
+
+                     )
+
+                     )
+
+              )
+
+            
+          Cases_on ‘phi’ >-(
+            Cases_on ‘x’ >- (
+
+(OUTL (OUTL ))
+
+              )
+
+            )
+
+
+          )
+
+
+        )
+)
+FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss)[symbolicParlComp_def] >>
+     
+*)
         
 )
         

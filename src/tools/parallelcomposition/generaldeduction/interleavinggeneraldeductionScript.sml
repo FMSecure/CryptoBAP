@@ -59,7 +59,45 @@ Definition binterleave_ts:
   binterleave_ts ts1 ts2 = {t| ∃t1 t2. (t1 ∈ ts1) ∧ (t2 ∈ ts2) ∧ (binterl t1 t2 t)}
 End
 
+
+val doubleLeftMTrn_def =
+Define`
+      doubleLeftMTrn (MTrn:('event + 'eventS, 'pred, 'state, 'symb) mtrel) (v,(p: ('predL + 'pred) -> bool),(c:'stateL),s) (t:(('event + 'eventS)+('eventL + 'eventS)) option list) (v',(p': ('predL + 'pred) -> bool),(c':'stateL),s')  = (MTrn (v,(IMAGE OUTR p),s) (MAP (OPTION_MAP OUTL) t) (v',(IMAGE OUTR p'),s'))
+`;
+
+val doubleRightMTrn_def =
+Define`
+      doubleRightMTrn (MTrn:('event + 'eventS, 'pred, 'state, 'symb) mtrel) (v,(p: ('pred + 'predR) -> bool),s,(c:'stateR)) (t:(('event + 'eventS)+('eventR + 'eventS)) option list) (v',(p': ('pred + 'predR) -> bool),s',(c':'stateR))  = (MTrn (v,(IMAGE OUTL p),s) (MAP (OPTION_MAP OUTL) t) (v',(IMAGE OUTL p'),s'))
+`;
+
+
+val doubleLeftDed_def =
+Define `
+       (doubleLeftDed (ded: ('pred) tded) (p: ('predL + 'pred) -> bool) (phi: ('predL + 'pred))  =  (ded (IMAGE OUTR p) (OUTR phi))
+       )`;  
         
+val doubleRightDed_def =
+Define `
+       (doubleRightDed (ded: ('pred) tded) (p: ('pred + 'predR) -> bool) (phi: ('pred + 'predR))  =  (ded (IMAGE OUTL p) (OUTL phi))
+       )`;
+
+       
+val prSum_def =
+Define`
+      prSum (P :(('pred1 + 'pred2) + ('pred1 + 'pred2) + 'pred3) -> bool) (P' :('pred1 + 'pred2 + 'pred3) + 'pred2 + 'pred3) =
+(∀x. (x ∈ P) ∧
+(case x of
+  INL (INL (ll : 'pred1)) => (ll = (OUTL (OUTL P')))
+| INR (INR (rr: 'pred3)) => (rr = (OUTR (OUTR P')))
+| INL (INR (lr : 'pred2)) => (lr = (OUTL (OUTR (OUTL P'))))
+| INR (INL (INL (rll : 'pred1))) => (rll = (OUTL (OUTL P')))
+| INR (INL (INR (rlr : 'pred2))) => (rlr = (OUTL (OUTR P')))
+))
+`;
+
+val prSum_Eq = new_axiom ("prSum_Eq",
+                               ``∀P P'. P = P' ⇔ prSum P = prSum P'``);
+                               
 val binterl_Empty = new_axiom ("binterl_Empty",
                                ``∀t1 t2. binterl t1 t2 [] ⇒ ((t1 = []) ∧(t2 = []))``);
 
