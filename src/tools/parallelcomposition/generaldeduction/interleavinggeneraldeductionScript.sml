@@ -95,9 +95,32 @@ Define`
 ))
 `;
 
+
+val prSumRev_def =
+Define`
+      prSumRev (P :(('pred1 + 'pred2 + 'pred3) + 'pred2 + 'pred3) -> bool) (P' :('pred1 + 'pred2) + ('pred1 + 'pred2) + 'pred3)  =
+(∀x. (x ∈ P) ∧
+(case x of
+  INL (INL (ll : 'pred1)) => (ll = (OUTL (OUTL P'))) 
+| INR (INR (rr: 'pred3)) => (rr = (OUTR (OUTR P')))
+| INL (INR (INL (lrl : 'pred2))) => (lrl = (OUTR (OUTL (OUTR P'))))
+| INR (INL (rl : 'pred2)) => (rl = (OUTR (OUTL (OUTR P'))))
+| INL (INR (INR (lrr : 'pred3))) => (lrr = (OUTR (OUTR P'))) 
+))
+`;
+        
 val prSum_Eq = new_axiom ("prSum_Eq",
                                ``∀P P'. P = P' ⇔ prSum P = prSum P'``);
-                               
+
+val prSum_prSumRev = new_axiom ("prSum_prSumRev",
+                          ``∀P P'. (P = (prSum P')) ⇔ ((prSumRev P) = P')``);
+                          
+val prSum_Rev = new_axiom ("prSum_Rev",
+                           ``∀P. (prSum (prSumRev P)) = P``);
+
+val Rev_prSum = new_axiom ("Rev_prSum",
+                          ``∀P. (prSumRev (prSum P)) = P``);
+                          
 val binterl_Empty = new_axiom ("binterl_Empty",
                                ``∀t1 t2. binterl t1 t2 [] ⇒ ((t1 = []) ∧(t2 = []))``);
 
@@ -200,6 +223,24 @@ val combineAllDedRev12 = new_axiom ("combineAllDedRev12",
                           ``∀(ded1:('pred1) tded) (ded2:('pred2) tded) (ded3:('pred1 + 'pred2) tded) P phi (m: 'pred2 -> 'pred1) (n: 'pred1 -> 'pred2).
                                                   combineAllDed ded1 ded2 ded3 P ((SUM_MAP m n) phi) = combineAllDed ded2 ded1 (RevDed ded3) (IMAGE (SUM_MAP n m) P) phi``);
                                                   
+val combineAllDedprSum12 = new_axiom ("combineAllDedprSum12",
+                          ``∀phi ded12 ded3 comded3 P'' P' ded1 ded23 comded1.
+          (combineAllDed ded12 ded3 comded3 P'' phi ∧
+          P' = P'' ∪ {phi})
+⇒
+        (∀phi.
+          combineAllDed ded1 ded23 comded1 (prSum P'')
+            phi ∧ prSum P' = prSum P'' ∪ {phi})``);
+
+val combineAllDedprSum23 = new_axiom ("combineAllDedprSum23",
+                          ``∀phi ded12 ded3 comded3 P'' P' ded1 ded23 comded1.
+          ( combineAllDed ded1 ded23 comded1 P'' phi ∧
+          prSum P' = P'' ∪ {phi})
+⇒
+        (∀phi.
+          combineAllDed ded12 ded3 comded3 (prSumRev P'')
+            phi ∧ P' = prSumRev P'' ∪ {phi})``);
+                        
 val DedRelINL = new_axiom ("DedRelINL",
                           ``∀(ded1:('pred1) tded) (MTrn1:('event1 + 'eventS, 'pred1, 'state1, 'symb) mtrel) (MTrn2:('event2 + 'eventS, 'pred2, 'state2, 'symb) mtrel) (ded3:('pred1 + 'pred2) tded) Sym P S1 S2 Sym' P' S1' S2' P'' t1 t2 x.
                             ((MTrn1 (Sym',IMAGE OUTL P'',S1') [NONE] (Sym',IMAGE OUTL P'' ∪ {x},S1')) ∧
