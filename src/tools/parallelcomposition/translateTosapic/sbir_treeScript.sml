@@ -15,6 +15,7 @@ P2A bir_var_t
 | Sync_Fr bir_var_t
 | Event bir_var_t
 | Crypto bir_var_t
+| Assign bir_var_t
 | Loop bir_var_t
 | Branch bir_var_t
 | Silent
@@ -109,7 +110,8 @@ Define`single_step_execute_symbolic_tree tre ev tre' =
  | (Event v) => (∃ i H st. (tre = (SNode ((Event v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,H)))
  | (Loop v) => (∃ i H st. (tre = (SNode ((Loop v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,H)))
  | (P2A v) => (∃ i H st. (tre = (SNode ((P2A v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,H)))
- | (Crypto v) => (∃ i H st. (tre = (SNode ((Crypto v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,(symb_interpr_update H ((BVar "crypto" (BType_Imm Bit64)), SOME (BExp_Den v))))))
+ | (Assign v) => (∃ i H st. (tre = (SNode ((Assign v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,(symb_interpr_update H ((BVar "let" (BType_Imm Bit64)), SOME (BExp_Den v))))))
+ | (Crypto v) => (∃ i H st. (tre = (SNode ((Crypto v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,(symb_interpr_update H ((BVar "let" (BType_Imm Bit64)), SOME (BExp_Den v))))))
  | (A2P v) => (∃ i H st. (tre = (SNode ((A2P v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,(symb_interpr_update H ((BVar "Adv" (BType_Imm Bit64)), SOME (BExp_Den v))))))
  | (Sync_Fr v) => (∃ i H st. (tre = (SNode ((Sync_Fr v),i,H) st)) ∧ (tre' = st) ∧ ((val_of_tree tre') = SOME (Silent,i+1,(symb_interpr_update H ((BVar "RNG" (BType_Imm Bit64)), SOME (BExp_Den v))))))             
 | (Branch v) => (∃ i H lst rst. (tre = (SBranch ((Branch v),i,H) lst rst)) ∧ ((tre' = lst) ∨ (tre' = rst)) ∧ ((val_of_tree tre') = SOME (Silent,i+1,H)))

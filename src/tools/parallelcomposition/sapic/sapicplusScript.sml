@@ -735,7 +735,7 @@ val sapic_position_let_true_transition_def = Define `
    (t1 = t2) /\
    (Ev = (Fact DedFact [t2])) /\
    (Pro' = P) /\
-   (Re' = (sapic_renaming_update Re ((Var "crypto" 0), SOME t2))) ∧
+   (Re' = (sapic_renaming_update Re ((Var "let" 0), SOME t2))) ∧
    (i' = i+1) /\
    (NRe = NRe'))`; 
                 
@@ -749,7 +749,7 @@ val sapic_position_let_false_transition_def = Define `
    (t1 ≠ t2) /\
    (Ev = (Fact DedFact [t2])) /\
    (Pro' = P) /\
-   (Re' = (sapic_renaming_update Re ((Var "crypto" 0), SOME t2))) ∧
+   (Re' = (sapic_renaming_update Re ((Var "let" 0), SOME t2))) ∧
    (i' = i+1) /\
    (NRe = NRe'))`; 
 
@@ -936,7 +936,7 @@ val sapic_plus_position_let_true_transition_def = Define `
    (t1 = t2) /\
    (Ev = SOME (INL (INL (Fact DedFact [t2])))) /\
    (Pro' = P) /\
-   (Re' = (sapic_renaming_update Re ((Var "crypto" 0), SOME t2))) ∧
+   (Re' = (sapic_renaming_update Re ((Var "let" 0), SOME t2))) ∧
    (i' = i+1) /\
    (NRe = NRe'))`; 
                 
@@ -950,7 +950,7 @@ val sapic_plus_position_let_false_transition_def = Define `
    (t1 ≠ t2) /\
    (Ev = SOME (INL (INL (Fact DedFact [t2])))) /\
    (Pro' = P) /\
-   (Re' = (sapic_renaming_update Re ((Var "crypto" 0), SOME t2))) ∧
+   (Re' = (sapic_renaming_update Re ((Var "let" 0), SOME t2))) ∧
    (i' = i+1) /\
    (NRe = NRe'))`;
 

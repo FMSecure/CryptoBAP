@@ -139,6 +139,7 @@ sbirEvent_to_sapicFact e =
 | Sync_Fr v => (Fact FreshFact [(Con (translate_birvar_to_sapicfreshname v))])
 | Event v   => (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v))])
 | Crypto v  => (Fact DedFact [(translate_birexp_to_sapicterm (BExp_Den v))])
+| Assign v  => (Fact DedFact [(translate_birexp_to_sapicterm (BExp_Den v))])
 | Loop v    => (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v))])
 | Branch v  => (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v))])
 | Silent    => (Fact TermFact [])
@@ -151,8 +152,10 @@ val symbtree_to_sapic_def = Define`
 (symbtree_to_sapic (SNode (Silent,i,H) st) = (symbtree_to_sapic st)) /\
 (symbtree_to_sapic (SNode ((Event v),i,H) st) =
 (ProcessAction (Event (Fact TermFact [(translate_birexp_to_sapicterm (BExp_Den v))])) (symbtree_to_sapic st))) /\
+(symbtree_to_sapic (SNode ((Assign v),i,H) st) =
+(ProcessComb  (Let (TVar (translate_birvar_to_sapicvar (BVar "let" (BType_Imm Bit64)))) (translate_birexp_to_sapicterm (BExp_Den v))) (symbtree_to_sapic st) (ProcessNull))) /\
 (symbtree_to_sapic (SNode ((Crypto v),i,H) st) =
-(ProcessComb  (Let (TVar (translate_birvar_to_sapicvar (BVar "crypto" (BType_Imm Bit64)))) (translate_birexp_to_sapicterm (BExp_Den v))) (symbtree_to_sapic st) (ProcessNull))) /\
+(ProcessComb  (Let (TVar (translate_birvar_to_sapicvar (BVar "let" (BType_Imm Bit64)))) (translate_birexp_to_sapicterm (BExp_Den v))) (symbtree_to_sapic st) (ProcessNull))) /\
 (symbtree_to_sapic (SNode ((Loop v),i,H) st) = (ProcessAction  Rep (symbtree_to_sapic st)))  /\
 (symbtree_to_sapic (SNode ((P2A v),i,H) st) = (ProcessAction (ChOut (SOME (TVar (Var "Channel" 0))) (translate_birexp_to_sapicterm (BExp_Den v))) (symbtree_to_sapic st))) /\
 (symbtree_to_sapic (SNode ((A2P v),i,H) st) = (ProcessAction (ChIn (SOME (TVar (Var "Channel" 0))) (TVar (translate_birvar_to_sapicvar v))) (symbtree_to_sapic st))) /\
@@ -314,7 +317,7 @@ Cases_on ‘NRe’ >>
 rewrite_tac[sapic_renaming_update_def,sapic_name_renaming_update_def] >>
 Q.EXISTS_TAC `symbtree_to_sapic Tree'` >>
 Q.EXISTS_TAC `i'+1` >>
-Q.EXISTS_TAC ` Renaming f'⦇Var "crypto" 0 ↦ SOME (translate_birexp_to_sapicterm (BExp_Den b))⦈ ` >>
+Q.EXISTS_TAC ` Renaming f'⦇Var "let" 0 ↦ SOME (translate_birexp_to_sapicterm (BExp_Den b))⦈ ` >>
 Q.EXISTS_TAC `NameRenaming f''` >>
 rw[sim_def] >-(
 IMP_RES_TAC position_of_val_thm>>
@@ -326,23 +329,64 @@ FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolS
 gen_tac >>
 PAT_X_ASSUM ``!x. A `` (ASSUME_TAC o (Q.SPECL [`x`]))>>
 rw[UPDATE_def]>-(
-Q.EXISTS_TAC `BVar "crypto" (BType_Imm Bit64)`>>
+Q.EXISTS_TAC `BVar "let" (BType_Imm Bit64)`>>
 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [translate_birvar_to_sapicvar_def]
 )>>
 eq_tac >-(
 rpt strip_tac >>
 Q.EXISTS_TAC `x'` >>                       
 ASM_SIMP_TAC (srw_ss()) []>>
-Cases_on ‘x' = BVar "crypto" (BType_Imm Bit64)’>>
+Cases_on ‘x' = BVar "let" (BType_Imm Bit64)’>>
 ASM_SIMP_TAC (srw_ss()) []
 )>>
 rpt strip_tac >>
 Q.EXISTS_TAC `x'`  >>                      
 ASM_SIMP_TAC (srw_ss()) []>>
-Cases_on ‘x' = BVar "crypto" (BType_Imm Bit64)’>>
+Cases_on ‘x' = BVar "let" (BType_Imm Bit64)’>>
 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [translate_birvar_to_sapicvar_def]
 ))
-(*end of Crypto*)
+  (*end of Crypto*)
+  >-(
+    rewrite_tac[sbirEvent_to_sapicFact_def] >>
+rw[single_step_execute_symbolic_tree_def]>>
+IMP_RES_TAC sim_def>>
+ASM_SIMP_TAC (srw_ss()) [symbtree_to_sapic_def,position_in_tree_def,sapic_position_transition_def]>>
+ASM_SIMP_TAC (srw_ss()) [sapic_position_let_true_transition_def,sapic_position_let_false_transition_def]>>
+Cases_on ‘H’ >>
+Cases_on ‘Re’ >>
+Cases_on ‘NRe’ >>
+rewrite_tac[sapic_renaming_update_def,sapic_name_renaming_update_def] >>
+Q.EXISTS_TAC `symbtree_to_sapic Tree'` >>
+Q.EXISTS_TAC `i'+1` >>
+Q.EXISTS_TAC ` Renaming f'⦇Var "let" 0 ↦ SOME (translate_birexp_to_sapicterm (BExp_Den b))⦈ ` >>
+Q.EXISTS_TAC `NameRenaming f''` >>
+rw[sim_def] >-(
+IMP_RES_TAC position_of_val_thm>>
+ASM_SIMP_TAC (srw_ss()) []
+)
+>-(
+IMP_RES_TAC env_of_val_thm>>
+FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [sapic_renaming_update_def,symb_interpr_dom_def,sapic_renaming_dom_def,symb_interpr_update_def,env_of_tree_def,IMAGE_DEF,EXTENSION]>>
+gen_tac >>
+PAT_X_ASSUM ``!x. A `` (ASSUME_TAC o (Q.SPECL [`x`]))>>
+rw[UPDATE_def]>-(
+Q.EXISTS_TAC `BVar "let" (BType_Imm Bit64)`>>
+FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [translate_birvar_to_sapicvar_def]
+)>>
+eq_tac >-(
+rpt strip_tac >>
+Q.EXISTS_TAC `x'` >>                       
+ASM_SIMP_TAC (srw_ss()) []>>
+Cases_on ‘x' = BVar "let" (BType_Imm Bit64)’>>
+ASM_SIMP_TAC (srw_ss()) []
+)>>
+rpt strip_tac >>
+Q.EXISTS_TAC `x'`  >>                      
+ASM_SIMP_TAC (srw_ss()) []>>
+Cases_on ‘x' = BVar "let" (BType_Imm Bit64)’>>
+FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [translate_birvar_to_sapicvar_def]
+      ) )
+(*end of Assign*)
   >-(
     rewrite_tac[sbirEvent_to_sapicFact_def] >>
 rw[single_step_execute_symbolic_tree_def]>>
