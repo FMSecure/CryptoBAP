@@ -41,10 +41,10 @@ val applyfunStOne = new_axiom ("applyfunStOne",
                                   ``∀(t:'state1). (RevInterpretStOne:'cstate1 -> 'state1) ((InterpretStOne:'state1 -> 'cstate1) t) = t``);
                                   
 val applyfunEvOneSyn = new_axiom ("applyfunEvOneSyn",
-                                  ``∀t. (InterpretEvOneSyn:('event1 + 'eventS) option list -> ('cevent1 + 'ceventS) list) ((RevInterpretEvOneSyn:('cevent1 + 'ceventS) list -> ('event1 + 'eventS) option list) t) = t``);
+                                  ``∀t (InterpretEvOneSyn:('event1 + 'eventS) option list -> ('cevent1 + 'ceventS) list) (RevInterpretEvOneSyn:('cevent1 + 'ceventS) list -> ('event1 + 'eventS) option list). (InterpretEvOneSyn:('event1 + 'eventS) option list -> ('cevent1 + 'ceventS) list) ((RevInterpretEvOneSyn:('cevent1 + 'ceventS) list -> ('event1 + 'eventS) option list) t) = t``);
 
 val applyfunEvTwoSyn = new_axiom ("applyfunEvTwoSyn",
-                            ``∀t. (InterpretEvTwoSyn:('event2 + 'eventS) option list -> ('cevent2 + 'ceventS) list ) ((RevInterpretEvTwoSyn:('cevent2 + 'ceventS) list -> ('event2 + 'eventS) option list) t) = t``);                                  
+                            ``∀t (InterpretEvTwoSyn:('event2 + 'eventS) option list -> ('cevent2 + 'ceventS) list ) (RevInterpretEvTwoSyn:('cevent2 + 'ceventS) list -> ('event2 + 'eventS) option list). (InterpretEvTwoSyn:('event2 + 'eventS) option list -> ('cevent2 + 'ceventS) list ) ((RevInterpretEvTwoSyn:('cevent2 + 'ceventS) list -> ('event2 + 'eventS) option list) t) = t``);                                  
 
 val binterl_Rev = new_axiom ("binterl_Rev",
                                 ``∀t t1 t2.
@@ -52,15 +52,15 @@ val binterl_Rev = new_axiom ("binterl_Rev",
                                    (binterl ((RevInterpretEvOneSyn:('cevent1 + 'ceventS) list -> ('event1 + 'eventS) option list) t1) ((RevInterpretEvTwoSyn:('cevent2 + 'ceventS) list -> ('event2 + 'eventS) option list) t2) t)``);
                                    
 val subset_one_def = Define `
-    subset_one C S = (∀(x: ('event1 + 'eventS) option list). ((InterpretEvOneSyn x):('cevent1 + 'ceventS) list) ∈ C ⇒ x ∈ S)
+    subset_one C S = (∀(x: ('event1 + 'eventS) option list). ∃InterpretEvOneSyn. ((InterpretEvOneSyn x):('cevent1 + 'ceventS) list) ∈ C ⇒ x ∈ S)
 `;
 
 val subset_two_def = Define `
-    subset_two C S = (∀(x: ('event2 + 'eventS) option list). ((InterpretEvTwoSyn x):('cevent2 + 'ceventS) list) ∈ C ⇒ x ∈ S)
+    subset_two C S = (∀(x: ('event2 + 'eventS) option list). ∃InterpretEvTwoSyn. ((InterpretEvTwoSyn x):('cevent2 + 'ceventS) list) ∈ C ⇒ x ∈ S)
                      `;
 
 val subset_comp_def = Define `
-    subset_comp C S = (∀(x: (('event1+'eventS) + ('event2 +'eventS)) option list). ((InterpretEvComp x):(('cevent1+'ceventS) + ('cevent2 +'ceventS)) list) ∈ C ⇒ x ∈ S)
+    subset_comp C S = (∀(x: (('event1+'eventS) + ('event2 +'eventS)) option list). ∃InterpretEvComp. ((InterpretEvComp x):(('cevent1+'ceventS) + ('cevent2 +'ceventS)) list) ∈ C ⇒ x ∈ S)
                       `;
              
 val compose_vs_modules_conc_symb_thm = store_thm(
@@ -82,6 +82,8 @@ val compose_vs_modules_conc_symb_thm = store_thm(
 rewrite_tac[binterleave_composition_concrete,interleavingconcreteTheory.binterleave_ts,interleavinggeneraldeductionTheory.binterleave_ts,derived_rules_generaldeductionTheory.traces_def,interleavingconcreteTheory.traces_def]>>
 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [subset_one_def,subset_two_def,subset_comp_def]>>
 rw[]>>
+Q.EXISTS_TAC `InterpretEvComp:(('event1+'eventS) + ('event2 +'eventS)) option list -> (('cevent1+'ceventS) + ('cevent2 +'ceventS)) list` >>
+rw[] >>
 PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvTwoSyn:('cevent2 + 'ceventS) list -> ('event2 + 'eventS) option list) (t2:(('cevent2+'ceventS) list)))`]))>>
 PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvOneSyn:('cevent1 + 'ceventS) list -> ('event1 + 'eventS) option list) (t1:(('cevent1+'ceventS) list)))`]))>>
 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [applyfunEvOneSyn,applyfunEvTwoSyn]>>            

@@ -86,7 +86,9 @@ val compose_bir_attacker_vs_sbir_DY_thm = store_thm(
   
 rewrite_tac[sbir_DY_comptraces_def,bir_att_comptraces_def,DY_traces_def,sbir_traces_def,att_traces_def,bir_traces_def,binterleave_composition_concrete,interleavingconcreteTheory.binterleave_ts,interleavinggeneraldeductionTheory.binterleave_ts,derived_rules_generaldeductionTheory.traces_def,interleavingconcreteTheory.traces_def]>>
 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [subset_one_def,subset_two_def,subset_comp_def]>>
-rw[]>>
+  rw[]>>
+ Q.EXISTS_TAC `InterpretEvComp` >>
+rw[] >>
 PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvTwoSyn:('attevent + 'ceventS) list -> (DYnsyc_event + (Name_t, Sig_t, Var_t) sync_event) option list) (t2:(('attevent+'ceventS) list)))`]))>>
   PAT_X_ASSUM ``!x. A`` (ASSUME_TAC o (Q.SPECL [`((RevInterpretEvOneSyn:('cevent + 'ceventS) list -> (sbir_event + (Name_t, Sig_t, Var_t) sync_event) option list) (t1:(('cevent + 'ceventS) list)))`]))>>
 FULL_SIMP_TAC (list_ss++pred_setSimps.PRED_SET_ss++boolSimps.LIFT_COND_ss++boolSimps.EQUIV_EXTRACT_ss) [applyfunEvOneSyn,applyfunEvTwoSyn]>>            
