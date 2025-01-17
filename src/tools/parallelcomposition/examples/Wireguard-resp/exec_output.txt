@@ -1,0 +1,131 @@
+!!! including "./config.env.sh"
+
+!!! Using HOLBA_HOLMAKE=/home/faezeh/Desktop/HolBA/opt/hol_k14/bin/Holmake
+
+make[1]: Entering directory '/home/faezeh/Desktop/HolBA'
+!!! including "./config.env.sh"
+
+!!! Using HOLBA_HOLMAKE=/home/faezeh/Desktop/HolBA/opt/hol_k14/bin/Holmake
+
+source ./scripts/setup/env_derive.sh && cd src/tools/parallelcomposition/examples/Wireguard-resp && /home/faezeh/Desktop/HolBA/opt/hol_k14/bin/Holmake 
+[0;31m%%%%%% Exporting not, because /home/faezeh/Desktop/HolBA/opt/hol_k14/bin already is in the PATH %%%%%%[0m
+[0;31m%%%%%% Exporting HOLBA_Z3_DIR's derived variables %%%%%%[0m
+Using PYTHONPATH=/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin/python
+Using LD_LIBRARY_PATH=/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin:/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin:
+Using HOL4_Z3_EXECUTABLE=/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin/z3
+Using HOL4_Z3_WRAPPED_EXECUTABLE=/home/faezeh/Desktop/HolBA/src/shared/z3_wrapper.py
+Scanning [1m$(HOLDIR)/examples/machine-code/hoare-triple[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/common[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/lib[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/m0/model[0m
+Scanning [1m$(HOLDIR)/examples/machine-code/decompiler[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/m0/step[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/arm8/model[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/arm8/step[0m
+Scanning [1m../../../../aux[0m
+Scanning [1m../../../../theory/bir[0m
+Scanning [1m../../../../theory/bir-support[0m
+Scanning [1m../../../../theory/models/l3[0m
+Scanning [1m../../../../theory/models/l3mod[0m
+Scanning [1m../../../../theory/models[0m
+Scanning [1m../../../../theory/abstract_hoare_logic[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/riscv/model[0m
+Scanning [1m$(HOLDIR)/examples/l3-machine-code/riscv/step[0m
+Scanning [1m../../../../theory/tools/lifter[0m
+Scanning [1m../../../../theory/tools/wp[0m
+Scanning [1m../../../../theory/tools/comp[0m
+Scanning [1m../../../../theory/tools/backlifter[0m
+Scanning [1m../../../../theory/tools[0m
+Scanning [1m../../../../theory[0m
+Scanning [1m../../../../shared/HolSmt[0m
+Scanning [1m../../../../shared/sml-simplejson[0m
+Scanning [1m../../../../shared[0m
+Scanning [1m../../../lifter[0m
+Scanning [1m../../../cfg[0m
+Scanning [1m../../../symbexecbin[0m
+Scanning [1m../../sapic[0m
+Scanning [1m../../translateTosapic[0m
+Scanning [1m../../../symbexec[0m
+Scanning [1m../../../symbexec/examples/IML[0m
+Scanning [1m/home/faezeh/Desktop/HolBA/src/tools/exec[0m
+Scanning [1m../../../symbexec/examples/binaries/balrob[0m
+Scanning [1m../../../symbexec/examples/binaries[0m
+Scanning [1m../../../symbexec/examples/PreProcess[0m
+Scanning [1m../../../symbexec/examples/libload[0m
+Scanning [1m../../tree[0m
+Scanning [1m../../prettyPrint[0m
+Starting work on HolBATools_SymbExec_ExampleLibload-heap
+HolBATools_SymbExec_ExampleLibload-heap                                                                                                                                                                                                       real:    9s  user:   12s     OK
+make[1]: Leaving directory '/home/faezeh/Desktop/HolBA'
+make[1]: Entering directory '/home/faezeh/Desktop/HolBA'
+!!! including "./config.env.sh"
+
+!!! Using HOLBA_HOLMAKE=/home/faezeh/Desktop/HolBA/opt/hol_k14/bin/Holmake
+
+--- created .exe file for src/tools/parallelcomposition/examples/Wireguard-resp/Combination-Wireguard-resp.sml
+make[1]: Leaving directory '/home/faezeh/Desktop/HolBA'
+[0;31m%%%%%% Exporting not, because /home/faezeh/Desktop/HolBA/opt/hol_k14/bin already is in the PATH %%%%%%[0m
+[0;31m%%%%%% Exporting HOLBA_Z3_DIR's derived variables %%%%%%[0m
+Using PYTHONPATH=/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin/python
+Using LD_LIBRARY_PATH=/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin:/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin:
+Using HOL4_Z3_EXECUTABLE=/home/faezeh/Desktop/HolBA/opt/z3-4.8.4.d6df51951f4c/bin/z3
+Using HOL4_Z3_WRAPPED_EXECUTABLE=/home/faezeh/Desktop/HolBA/src/shared/z3_wrapper.py
+===================================================================================================
+== Testing: src/tools/parallelcomposition/examples/Wireguard-resp/Combination-Wireguard-resp.exe ==
+===================================================================================================
+found 798 blocks in program
+initial state created.
+
+current number of stopped states: 0
+current number of stopped states: 90
+
+
+finished exploration of all paths.
+
+number of paths found: 162
+
+number of "no assert failed" paths found: 21
+
+number of "assert failed" paths found: 141
+
+current number of stopped states: 125
+current number of stopped states: 267
+current number of stopped states: 494
+current number of stopped states: 730
+========================================================================================================
+== Test running: src/tools/parallelcomposition/examples/Wireguard-resp/Combination-Wireguard-resp.exe ==
+== Time so far:  30 sec.                                                                              ==
+========================================================================================================
+current number of stopped states: 919
+current number of stopped states: 1146
+current number of stopped states: 1383
+
+
+finished exploration of all paths.
+
+number of paths found: 1542
+
+number of "no assert failed" paths found: 153
+
+number of "assert failed" paths found: 1389
+
+========================================================================================================
+== Test running: src/tools/parallelcomposition/examples/Wireguard-resp/Combination-Wireguard-resp.exe ==
+== Time so far:  60 sec.                                                                              ==
+========================================================================================================
+Get refined predlists
+Get tree
+Get vals_list
+Get sort_vals
+========================================================================================================
+== Test running: src/tools/parallelcomposition/examples/Wireguard-resp/Combination-Wireguard-resp.exe ==
+== Time so far:  90 sec.                                                                              ==
+========================================================================================================
+built a symbolic tree with value
+built sapic_process
+wrote into file
+============================
+== Test successful: src/tools/parallelcomposition/examples/Wireguard-resp/Combination-Wireguard-resp.exe ==
+== Elapsed time: 110 sec. ==
+============================
