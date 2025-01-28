@@ -124,7 +124,7 @@ Define`
 		                           | NDC                => NDC
 		                           | (CondEq t1 t2)     => CondEq (sapic_substvar x y t1) (sapic_substvar x y t2)
                                            | (Cond t)           => Cond (sapic_substvar x y t)
-		                           | (Lookup t v)       => Lookup (sapic_substvar x y t) (var_subst x y v)
+		                           | (Lookup t v)       => Lookup (sapic_substvar x y t) v
 		                           | (Let t1 t2)        => Let (sapic_substvar x y t1) (sapic_substvar x y t2)
 		                           | (ProcessCall s ts) => ProcessCall s (MAP (sapic_substvar x y) ts)
                                           ))`;
@@ -475,6 +475,7 @@ val sapic_new_transition_def = Define `
    (Pnew = (BAG_UNION Ps {|(process_substname N (Con N') P)|})) /\
    (Ev = []) /\
    (N' = Name FreshName n') /\
+   (N' NOTIN Ns) /\	
    (Ns' = (N' INSERT Ns)) /\
    (St = St') /\
    (Sb = Sb') /\
