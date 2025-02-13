@@ -5,6 +5,10 @@
 structure selftestLib :> selftestLib = struct
 
   (* TODO: Put test instances here? *)
+  val sty_OK     = [FG Green];
+  val sty_CACHE  = [FG Yellow];
+  val sty_FAIL   = [FG OrangeRed];
+  val sty_HEADER = [Bold, Underline];
 
   (* Styles for success, fail and header *)
   val sty_OK     = [FG Green];
@@ -26,10 +30,16 @@ end;
 
 *)
   local
-    open HolKernel Parse;
-    open testutils;
-    open PPBackEnd;
-    open bir_inst_liftingLib;
+  open HolKernel boolLib liteLib simpLib Parse bossLib;
+  open PPBackEnd;
+  open bir_inst_liftingLibTypes bir_inst_liftingHelpersLib;
+
+  (* TODO: Ideally, these should not be defined twice *)
+  val sty_OK     = [FG Green];
+  val sty_CACHE  = [FG Yellow];
+  val sty_FAIL   = [FG OrangeRed];
+  val sty_HEADER = [Bold, Underline];
+
   in
   (* Error at this point is only due to REPL not knowing difference between struct and module *)
   open MD;

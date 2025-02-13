@@ -1,0 +1,4 @@
+The event name is as follows:
+
+client_begin clientID serverID request
+client_accept clientID serverID request response
