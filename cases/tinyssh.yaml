@@ -1,0 +1,39 @@
+name: tinyssh
+description: Checked-in TinySSH server example.
+arch: arm8
+channel: Channel
+input:
+  da: examples/binaries/protocols/tinyssh/tinysshd.da
+  disassembly:
+    tool: ghidra
+    sections: [.text]
+  theory: TinySSHexample
+  symbols: [main, tinyssh_dec, tinyssh_enc, tinyssh_hash, AcceptS, AcceptS2, receive_new_key, kdfPtoS, kdfStoP]
+execution:
+  fragments:
+    - name: accept_server
+      entry_label: 0x403D20
+      exit_labels: [0x404794]
+    - name: receive_new_key
+      entry_label: 0x402730
+      exit_labels: [0x403160]
+  extra_variables:
+    - name: key
+      type: Imm
+      width: 64
+functions:
+  library: [kdfPtoS]
+  adversary: [packet_getall]
+  crypto:
+    kdfPtoS: KDF
+    tinyssh_enc: ENC
+    tinyssh_dec: DEC
+artifacts:
+  sapic_source: examples/protocols/tinyssh/Sapic_Translation.txt
+  tamarin_source: examples/backend-results/tinyssh.spthy
+backends: [tamarin, squirrel]
+proof_status:
+  hol: generated_unchecked
+  tamarin: generated_unchecked
+  squirrel: generated_unchecked
+security_lemmas: [sanity_AcceptP, sanity_AcceptS, injPS, injSP, key_secrecy]

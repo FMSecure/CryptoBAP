@@ -1,0 +1,4 @@
+all default: $(DEFAULT_TARGETS)
+
+.PHONY: all default
+

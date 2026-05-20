@@ -1,0 +1,10 @@
+HOLBA_ROOT = $(if $(HOLBADIR),$(HOLBADIR),$(HOLBA_DIR))
+
+INCLUDES = $(HOLBA_ROOT)/src/theory/bir \
+           $(HOLBA_ROOT)/src/theory/bir-support \
+           $(HOLBA_ROOT)/src/theory/tools/symbexec \
+           $(HOLBA_ROOT)/src/shared \
+           ../sapic
+
+all: $(DEFAULT_TARGETS)
+.PHONY: all

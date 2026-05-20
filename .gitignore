@@ -1,0 +1,71 @@
+# Compiled HOL files
+.hol/
+.HOLMK
+.hollogs
+*Theory.txt
+*Theory.dat
+*Theory.sig
+*Theory.sml
+*.ui
+*.uo
+*~
+*.exe
+*-heap
+
+# Makefile related stuff
+Makefile.local
+Holmakefile.gen
+holba-tests.log
+holba-tests.success
+exec_output.txt
+
+# Temporary BIR files
+tempdir/
+*.ps
+_build/
+_cryptobap2-support-cache/
+__pycache__/
+*.pyc
+
+# OS specific
+.DS_Store
+
+# Vim (from https://github.com/github/gitignore/blob/master/Global/Vim.gitignore)
+## Swap
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+## Session
+Session.vim
+## Temporary
+.netrwhist
+*~
+*.sml#
+## Auto-generated tag files
+tags
+## Persistent undo
+[._]*.un~
+
+# IntelliJ IDEs
+.idea
+
+# VS Code
+.vscode
+
+# opt for dependencies within
+opt
+
+# logs for general purpose logging
+logs
+
+# configuration files
+config.env.sh
+
+# binary files compiled for analysis
+*.elf
+*.o
+!examples/xor/input/xor.o
+# generally all .da files
+#*.da

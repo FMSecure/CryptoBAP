@@ -1,0 +1,34 @@
+name: xor
+description: Checked-in XOR running example.
+arch: arm8
+channel: Channel
+input:
+  da: examples/binaries/protocols/xor/xor.da
+  disassembly:
+    tool: ghidra
+    sections: [.text]
+  theory: XORexample
+  symbols: [new_key, senc, send, main]
+execution:
+  entry_label: 60
+  exit_labels: [132]
+  extra_variables:
+    - name: key
+      type: Imm
+      width: 64
+functions:
+  library: [senc, new_key, send]
+  adversary: [recv]
+  crypto:
+    send: MEMcpy
+    new_key: OTP
+    senc: XOR
+artifacts:
+  sapic_source: examples/protocols/xor/Sapic_Translation.txt
+  tamarin_source: examples/backend-results/xor.spthy
+backends: [tamarin, squirrel]
+proof_status:
+  hol: generated_unchecked
+  sapic: generated_unchecked
+  squirrel: generated_unchecked
+security_lemmas: []

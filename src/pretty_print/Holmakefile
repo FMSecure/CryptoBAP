@@ -1,0 +1,6 @@
+INCLUDES = ../tree \
+           ../sapic \
+           ../translate_to_sapic
+
+all: $(DEFAULT_TARGETS)
+.PHONY: all
