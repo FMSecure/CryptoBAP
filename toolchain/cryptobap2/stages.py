@@ -5,6 +5,8 @@ import os
 import re
 import shutil
 import subprocess
+from dataclasses import dataclass
+from string import Template
 from pathlib import Path
 from typing import Any
 
@@ -21,10 +23,85 @@ from .paths import DEFAULT_HOLBA_DIR, DEFAULT_HOLMAKE
 from .sapic_format import format_sapic_text
 from .stage_coverage import parse_lifted_labels, sapic_translation_coverage, validate_fragment_labels
 from .source_segments import write_source_segment_files
+from .yaml_emit import yaml_named_list, yaml_scalar
+
+SML_TEMPLATE_DIR = Path(__file__).with_name("sml_templates")
 
 
 class StageError(RuntimeError):
     pass
+
+
+@dataclass(frozen=True)
+class LiftArtifacts:
+    runner: Path
+    holmakefile: Path
+    label_dump: Path
+    hol_source_root: Path | None = None
+
+    def as_dict(self) -> dict[str, Path | None]:
+        return {
+            "runner": self.runner,
+            "holmakefile": self.holmakefile,
+            "label_dump": self.label_dump,
+            "hol_source_root": self.hol_source_root,
+        }
+
+
+@dataclass(frozen=True)
+class SymexecArtifacts:
+    runner: Path
+    holmakefile: Path
+    sapic: Path
+    model: Path
+    run_sapic: Path
+    run_model: Path
+    pipeline_yaml: Path
+    runner_theory: Path
+    hol_source_root: Path
+
+    def as_dict(self) -> dict[str, Path]:
+        return {
+            "runner": self.runner,
+            "holmakefile": self.holmakefile,
+            "sapic": self.sapic,
+            "model": self.model,
+            "run_sapic": self.run_sapic,
+            "run_model": self.run_model,
+            "pipeline_yaml": self.pipeline_yaml,
+            "runner_theory": self.runner_theory,
+            "hol_source_root": self.hol_source_root,
+        }
+
+
+SML_TEMPLATE_FIELDS = {
+    "lift_runner.sml": {
+        "theory",
+        "arch",
+        "dafilename",
+        "symbol_lines",
+        "section_lines",
+        "lift_all_symbols",
+        "lifter",
+        "theorem_name",
+        "label_dump",
+    },
+    "symexec_runner.sml": {
+        "theory",
+        "pipeline_yaml",
+        "runner_theory",
+        "theory_db",
+        "theorem_name",
+        "prog_vars",
+        "binary_model_schema",
+        "case_metadata_json",
+        "provenance_json",
+        "proof_status_json",
+        "fragment_specs",
+        "sapic_output",
+        "model_output",
+    },
+}
 
 
 def stage_hol_sources(
@@ -58,21 +135,39 @@ def _safe_identifier(value: str) -> str:
     return name
 
 
-def _yaml_scalar(value: object) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, int):
-        return str(value)
-    if value is None:
-        return "null"
-    escapes = {
-        "\\": "\\\\",
-        '"': '\\"',
-        "\n": "\\n",
-        "\r": "\\r",
-        "\t": "\\t",
-    }
-    return '"' + "".join(escapes.get(char, char) for char in str(value)) + '"'
+def _render_sml_template(name: str, **values: object) -> str:
+    template_path = SML_TEMPLATE_DIR / name
+    template_text = template_path.read_text(encoding="utf-8")
+    template = Template(template_text)
+    if not template.is_valid():
+        raise StageError(f"SML template has invalid Template syntax: {template_path}")
+
+    expected = SML_TEMPLATE_FIELDS.get(name)
+    placeholders = set(template.get_identifiers())
+    if expected is None:
+        raise StageError(f"SML template has no placeholder contract: {template_path}")
+    if placeholders != expected:
+        missing = sorted(expected - placeholders)
+        extra = sorted(placeholders - expected)
+        details = []
+        if missing:
+            details.append("missing " + ", ".join(missing))
+        if extra:
+            details.append("unexpected " + ", ".join(extra))
+        raise StageError(f"SML template placeholders do not match contract for {name}: {'; '.join(details)}")
+
+    supplied = set(values)
+    if supplied != expected:
+        missing = sorted(expected - supplied)
+        extra = sorted(supplied - expected)
+        details = []
+        if missing:
+            details.append("missing " + ", ".join(missing))
+        if extra:
+            details.append("unexpected " + ", ".join(extra))
+        raise StageError(f"SML template render arguments do not match contract for {name}: {'; '.join(details)}")
+
+    return template.substitute({key: str(value) for key, value in values.items()})
 
 
 def _label_term(value: int, arch: str) -> str:
@@ -203,7 +298,10 @@ def lift_stage_is_current(
     holba: Path = DEFAULT_HOLBA_DIR,
 ) -> bool:
     theory_obj = layout.work / ".hol" / "objs" / f"{_safe_identifier(case.theory)}Theory.uo"
+    label_metadata = layout.bir / "lifted-labels.json"
     if not theory_obj.exists():
+        return False
+    if not label_metadata.exists():
         return False
     manifest = load_manifest(layout.manifest_path)
     stage = manifest.get("stages", {}).get("lift") if manifest else None
@@ -212,17 +310,13 @@ def lift_stage_is_current(
     for key, expected in _lift_fingerprint(case, holmake=holmake, holba=holba).items():
         if stage.get(key) != expected:
             return False
-    return _artifact_hash_matches(manifest, "lifted_theory_uo", theory_obj)
+    return (
+        _artifact_hash_matches(manifest, "lifted_theory_uo", theory_obj)
+        and _artifact_hash_matches(manifest, "lifted_label_metadata", label_metadata)
+    )
 
 
 _DA_FUNCTION_HEADER_RE = re.compile(r"^([0-9A-Fa-f]+)\s+<([^>]+)>:")
-
-
-def _yaml_named_list(indent: int, name: str, values: list[str]) -> list[str]:
-    pad = " " * indent
-    if not values:
-        return [f"{pad}{name}: []"]
-    return [f"{pad}{name}:", *[f"{pad}  - {_yaml_scalar(value)}" for value in values]]
 
 
 def _write_symexec_pipeline_yaml(case: CaseConfig, layout: BuildLayout, sapic_output: Path) -> Path:
@@ -242,19 +336,19 @@ def _write_symexec_pipeline_yaml(case: CaseConfig, layout: BuildLayout, sapic_ou
             if isinstance(variable, dict):
                 extra_lines.extend(
                     [
-                        f"    - name: {_yaml_scalar(variable.get('name', ''))}",
-                        f"      type: {_yaml_scalar(variable.get('type', 'Imm'))}",
+                        f"    - name: {yaml_scalar(variable.get('name', ''))}",
+                        f"      type: {yaml_scalar(variable.get('type', 'Imm'))}",
                         f"      width: {int(variable.get('width', 64))}",
                     ]
                 )
     extra_block = ["  extra_variables:", *extra_lines] if extra_lines else ["  extra_variables: []"]
     crypto_lines = [
-        f"  {_yaml_scalar(name)}: {_yaml_scalar(label)}"
+        f"  {yaml_scalar(name)}: {yaml_scalar(label)}"
         for name, label in sorted((str(k), str(v)) for k, v in crypto.items())
     ]
     crypto_block = ["cryptographic_functions:", *crypto_lines] if crypto_lines else ["cryptographic_functions: {}"]
     callsite_crypto_lines = [
-        f"  {_yaml_scalar(int(label))}: {_yaml_scalar(crypto_label)}"
+        f"  {yaml_scalar(int(label))}: {yaml_scalar(crypto_label)}"
         for label, crypto_label in sorted((int(k), str(v)) for k, v in callsite_crypto.items())
     ]
     callsite_crypto_block = (
@@ -262,16 +356,13 @@ def _write_symexec_pipeline_yaml(case: CaseConfig, layout: BuildLayout, sapic_ou
         if callsite_crypto_lines
         else ["cryptographic_callsite_labels: {}"]
     )
-    fragment = case.fragments[0] if case.fragments else {"entry_label": 0, "exit_labels": []}
-    first_exits = [int(label) for label in fragment.get("exit_labels", [])]
-    exit_block = ["  exit_labels:", *[f"    - {label}" for label in first_exits]] if first_exits else ["  exit_labels: []"]
     fragment_lines: list[str] = []
     for item in case.fragments:
         if not isinstance(item, dict):
             continue
         fragment_lines.extend(
             [
-                f"    - name: {_yaml_scalar(item.get('name', 'fragment'))}",
+                f"    - name: {yaml_scalar(item.get('name', 'fragment'))}",
                 f"      entry_label: {int(item.get('entry_label', 0))}",
             ]
         )
@@ -288,18 +379,17 @@ def _write_symexec_pipeline_yaml(case: CaseConfig, layout: BuildLayout, sapic_ou
     yaml_text = "\n".join(
         [
             "pipeline:",
-            f"  theory: {_yaml_scalar(_safe_identifier(case.theory))}",
-            f"  entry_label: {int(fragment['entry_label'])}",
-            *exit_block,
+            f"  theory: {yaml_scalar(_safe_identifier(case.theory))}",
+            f"  channel: {yaml_scalar(case.channel)}",
             *extra_block,
             f"  stub_unclassified_calls: {_sml_bool(_stub_unclassified_calls(case))}",
             f"  allow_unmapped_memory_overapprox: {_sml_bool(_allow_unmapped_memory_overapprox(case))}",
-            f"  output_file: {_yaml_scalar(sapic_output.resolve())}",
+            f"  output_file: {yaml_scalar(sapic_output.resolve())}",
             "  fragments:",
             *fragment_lines,
             "functions:",
-            *_yaml_named_list(2, "library", library),
-            *_yaml_named_list(2, "adversary", adversary),
+            *yaml_named_list(2, "library", library),
+            *yaml_named_list(2, "adversary", adversary),
             *crypto_block,
             *callsite_crypto_block,
             "arities:",
@@ -338,7 +428,7 @@ def _lifter_function(arch: str) -> str:
     raise StageError(f"unsupported architecture for generated HOL lift runner: {arch}")
 
 
-def generate_lift_runner(case: CaseConfig, layout: BuildLayout) -> dict[str, Path | None]:
+def generate_lift_runner(case: CaseConfig, layout: BuildLayout) -> LiftArtifacts:
     ensure_layout(layout)
     clear_legacy_case_source_view(layout)
     if case.input_da is None:
@@ -352,55 +442,23 @@ def generate_lift_runner(case: CaseConfig, layout: BuildLayout) -> dict[str, Pat
     symbol_lines = ",\n".join(f"  {_quote_sml(symbol)}" for symbol in lift_symbols)
     section_lines = ",\n".join(f"  {_quote_sml(section)}" for section in case.disassembly_sections)
     lifter = _lifter_function(case.arch)
-    content = f"""open HolKernel Parse
-open PPBackEnd;
-open bir_update_blockTheory;
-open bir_inst_liftingTheory;
-
-open bir_inst_liftingLib;
-open bir_inst_liftingHelpersLib;
-open bir_lifter_simple_interfaceLib;
-open gcc_supportLib;
-
-val _ = Parse.current_backend := PPBackEnd.vt100_terminal;
-
-val _ = new_theory {_quote_sml(theory)};
-
-val arch_str = {_quote_sml(case.arch)};
-val dafilename = {_quote_sml(case.input_da.resolve())};
-val symbs_sec_text = [
-{symbol_lines}
-  ];
-val selected_sections = [
-{section_lines}
-  ];
-val lift_all_symbols = {_sml_bool(_case_uses_wildcard_symbols(case))};
-
-fun list_has value items = List.exists (fn x => x = value) items;
-
-val symb_filter_lift = fn secname =>
-  if list_has "*" selected_sections orelse list_has secname selected_sections
-  then (fn symbname => lift_all_symbols orelse list_has symbname symbs_sec_text)
-  else (K false);
-
-val (region_map, sections) = read_disassembly_file_regions_filter symb_filter_lift dafilename;
-val prog_range = da_sections_minmax sections;
-val (thm, errors) = {lifter} prog_range sections;
-val _ = save_thm ({_quote_sml(theory + "_thm")}, thm);
-val _ =
-  let
-    val (_, _, _, prog_tm) = (dest_bir_is_lifted_prog o concl) thm;
-    val out_stream = TextIO.openOut {_quote_sml(label_dump.resolve())};
-  in
-    (TextIO.output (out_stream, term_to_string prog_tm); TextIO.closeOut out_stream)
-  end;
-val _ = export_theory();
-"""
+    content = _render_sml_template(
+        "lift_runner.sml",
+        theory=_quote_sml(theory),
+        arch=_quote_sml(case.arch),
+        dafilename=_quote_sml(case.input_da.resolve()),
+        symbol_lines=symbol_lines,
+        section_lines=section_lines,
+        lift_all_symbols=_sml_bool(_case_uses_wildcard_symbols(case)),
+        lifter=lifter,
+        theorem_name=_quote_sml(theory + "_thm"),
+        label_dump=_quote_sml(label_dump.resolve()),
+    )
     holmake_text = _holmakefile_content(layout)
     holmakefile.write_text(holmake_text, encoding="utf-8")
     holmakefile_snapshot.write_text(holmake_text, encoding="utf-8")
     script.write_text(content, encoding="utf-8")
-    return {"runner": script, "holmakefile": holmakefile_snapshot, "label_dump": label_dump, "hol_source_root": None}
+    return LiftArtifacts(runner=script, holmakefile=holmakefile_snapshot, label_dump=label_dump)
 
 
 def _run_holmake(layout: BuildLayout, target: str, log_path: Path, *, holmake: Path, holba: Path) -> subprocess.CompletedProcess[str]:
@@ -421,6 +479,27 @@ def _run_holmake(layout: BuildLayout, target: str, log_path: Path, *, holmake: P
     return result
 
 
+def _remove_stale_artifact(path: Path | None) -> None:
+    if path is not None and path.exists():
+        path.unlink()
+
+
+def _symexec_attempt_artifacts(case: CaseConfig, layout: BuildLayout) -> tuple[Path, Path]:
+    stem = _safe_identifier(case.name)
+    return (
+        layout.work / f".{stem}.sapic.attempt",
+        layout.work / f".{stem}.binary-model.json.attempt",
+    )
+
+
+def _replace_artifact(source: Path, target: Path) -> bool:
+    if not source.exists():
+        return False
+    target.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(source, target)
+    return True
+
+
 def run_lift_stage(
     case: CaseConfig,
     layout: BuildLayout,
@@ -431,35 +510,36 @@ def run_lift_stage(
 ) -> dict[str, Any]:
     artifacts = generate_lift_runner(case, layout)
     theory = _safe_identifier(case.theory)
-    hol_source_root = artifacts["hol_source_root"]
     request = {
         "stage": "lift",
         "status": "configured",
         **_lift_fingerprint(case, holmake=holmake, holba=holba),
-        "runner": str(artifacts["runner"]),
-        "hol_source_root": str(hol_source_root) if hol_source_root is not None else None,
+        "runner": str(artifacts.runner),
+        "hol_source_root": str(artifacts.hol_source_root) if artifacts.hol_source_root is not None else None,
         "case_config_sha256": case_config_sha256(case),
     }
     request_path = layout.bir / "lift-request.json"
     _write_json(request_path, request)
     stage_data = dict(request)
-    stage_data["runner_sha256"] = sha256_file(artifacts["runner"])
-    stage_data["holmakefile_sha256"] = sha256_file(artifacts["holmakefile"])
+    stage_data["runner_sha256"] = sha256_file(artifacts.runner)
+    stage_data["holmakefile_sha256"] = sha256_file(artifacts.holmakefile)
     stage_data["holmake"] = str(holmake)
     stage_data["holba"] = str(holba)
     artifact_map = {
         "lift_request": request_path,
-        "lift_runner": artifacts["runner"],
-        "lift_holmakefile": artifacts["holmakefile"],
-        "lifted_label_dump": artifacts["label_dump"],
+        "lift_runner": artifacts.runner,
+        "lift_holmakefile": artifacts.holmakefile,
+        "lifted_label_dump": artifacts.label_dump,
     }
     if execute:
         log_path = layout.logs / "lift-holmake.log"
+        theory_obj = layout.work / ".hol" / "objs" / f"{theory}Theory.uo"
+        _remove_stale_artifact(artifacts.label_dump)
+        _remove_stale_artifact(theory_obj)
         result = _run_holmake(layout, f"{theory}Theory.uo", log_path, holmake=holmake, holba=holba)
         stage_data["status"] = "generated_unchecked" if result.returncode == 0 else "validation_failed"
         stage_data["exit_code"] = result.returncode
         stage_data["log"] = str(log_path)
-        theory_obj = layout.work / ".hol" / "objs" / f"{theory}Theory.uo"
         artifact_map.update({"lift_log": log_path, "lifted_theory_uo": theory_obj})
         if result.returncode != 0:
             update_manifest(case, layout, command="lift", stage="lift", stage_data=stage_data, artifacts=artifact_map)
@@ -475,21 +555,31 @@ def run_lift_stage(
             )
             update_manifest(case, layout, command="lift", stage="lift", stage_data=stage_data, artifacts=artifact_map)
             raise StageError(f"HOL lift did not produce expected theory object for {case.name}: {theory_obj}")
-        if artifacts["label_dump"].exists():
-            labels = sorted(parse_lifted_labels(artifacts["label_dump"].read_text(encoding="utf-8", errors="replace")))
-            label_metadata = {
-                "source": str(artifacts["label_dump"]),
-                "source_sha256": sha256_file(artifacts["label_dump"]),
-                "labels": labels,
-            }
-            label_metadata_path = layout.bir / "lifted-labels.json"
-            _write_json(label_metadata_path, label_metadata)
-            stage_data["label_count"] = len(labels)
-            artifact_map["lifted_label_metadata"] = label_metadata_path
+        if not artifacts.label_dump.exists():
+            stage_data["status"] = "validation_failed"
+            stage_data.setdefault("diagnostics", []).append(
+                {
+                    "severity": "error",
+                    "code": "missing_label_dump",
+                    "message": f"HOL lift completed but did not produce {artifacts.label_dump}",
+                }
+            )
+            update_manifest(case, layout, command="lift", stage="lift", stage_data=stage_data, artifacts=artifact_map)
+            raise StageError(f"HOL lift did not produce expected label dump for {case.name}: {artifacts.label_dump}")
+        labels = sorted(parse_lifted_labels(artifacts.label_dump.read_text(encoding="utf-8", errors="replace")))
+        label_metadata = {
+            "source": str(artifacts.label_dump),
+            "source_sha256": sha256_file(artifacts.label_dump),
+            "labels": labels,
+        }
+        label_metadata_path = layout.bir / "lifted-labels.json"
+        _write_json(label_metadata_path, label_metadata)
+        stage_data["label_count"] = len(labels)
+        artifact_map["lifted_label_metadata"] = label_metadata_path
 
     artifact_map.update(write_source_segment_files(case, layout, folders=("bir",)))
     update_manifest(case, layout, command="lift", stage="lift", stage_data=stage_data, artifacts=artifact_map)
-    return {"request": request_path, **artifacts, "stage": stage_data}
+    return {"request": request_path, **artifacts.as_dict(), "stage": stage_data}
 
 
 def _extra_var_terms(case: CaseConfig, base_vars: str = "prog_vars") -> str:
@@ -583,7 +673,9 @@ def generate_symexec_runner(
     *,
     holmake: Path = DEFAULT_HOLMAKE,
     holba: Path = DEFAULT_HOLBA_DIR,
-) -> dict[str, Path]:
+    sapic_output: Path | None = None,
+    model_output: Path | None = None,
+) -> SymexecArtifacts:
     ensure_layout(layout)
     hol_source_root = stage_hol_sources(layout, holmake=holmake, holba=holba)
     theory = _safe_identifier(case.theory)
@@ -593,200 +685,45 @@ def generate_symexec_runner(
     holmakefile = layout.work / "Holmakefile"
     holmakefile_snapshot = layout.work / "Holmakefile.symexec"
     fragment_specs = _fragment_specs_sml(case)
-    sapic_output = layout.sapic / f"{case.name}.sapic"
-    model_output = binary_model_path(case, layout)
-    pipeline_yaml = _write_symexec_pipeline_yaml(case, layout, sapic_output)
+    final_sapic_output = layout.sapic / f"{case.name}.sapic"
+    final_model_output = binary_model_path(case, layout)
+    run_sapic_output = sapic_output or final_sapic_output
+    run_model_output = model_output or final_model_output
+    pipeline_yaml = _write_symexec_pipeline_yaml(case, layout, run_sapic_output)
     case_metadata_json = _json_literal_for_sml(_case_model_metadata(case))
-    provenance_json = _json_literal_for_sml(_initial_model_provenance(case, sapic_output))
+    provenance_json = _json_literal_for_sml(_initial_model_provenance(case, run_sapic_output))
     proof_status_json = _json_literal_for_sml(_model_proof_status(case))
-    content = f"""open HolKernel Parse
-
-open {theory}Theory;
-open yamlLib;
-open pipelineConfigLib;
-open bir_envSyntax;
-open bir_symbexec_stateLib;
-open bir_symbexec_coreLib;
-open bir_symbexec_compLib;
-open bir_symbexec_stepLib;
-open bir_symbexec_sumLib;
-open bir_block_collectionLib;
-open bir_programSyntax;
-open bir_valuesSyntax;
-open bir_immSyntax;
-open bir_expSyntax;
-open bir_exp_immSyntax;
-open bir_exec_typingLib;
-open bir_inst_liftingHelpersLib;
-open HolBACoreSimps;
-open HolBASimps;
-open bslSyntax;
-open bir_smtLib;
-open bir_exp_to_wordsLib;
-open Z3_SAT_modelLib;
-open bir_exp_substitutionsSyntax;
-open binariesLib;
-open bir_auxiliaryLib;
-open bir_constpropLib;
-val _ = pipelineConfigLib.load_config {_quote_sml(pipeline_yaml.resolve())};
-open commonBalrobScriptLib;
-open bir_cfgLib;
-open Redblackmap;
-open bir_symbexec_oracleLib;
-open sbir_treeLib;
-open sapicplusTheory;
-open sapicplusSyntax;
-open translate_to_sapicTheory;
-open rich_listTheory;
-open translate_to_sapicLib;
-open messagesTheory;
-open messagesSyntax;
-open tree_to_processLib;
-open sapic_to_fileLib;
-open CryptoBAP2Pipeline;
-
-val _ = new_theory {_quote_sml(runner_theory)};
-
-val (_, _, _, prog_tm) =
-  (dest_bir_is_lifted_prog o concl) (DB.fetch {_quote_sml(theory)} {_quote_sml(theory + "_thm")});
-val bl_dict_ = gen_block_dict prog_tm;
-val prog_lbl_tms_ = get_block_dict_keys bl_dict_;
-val _ = binariesLib.set_prog_lbl_tms prog_lbl_tms_;
-val prog_vars_base = gen_vars_of_prog prog_tm;
-val prog_vars = {_extra_var_terms(case, "prog_vars_base")};
-val n_dict = bir_cfgLib.cfg_build_node_dict bl_dict_ prog_lbl_tms_;
-val adr_dict = bir_symbexec_PreprocessLib.fun_addresses_dict bl_dict_ prog_lbl_tms_;
-
-val binary_model_schema = {_quote_sml(BINARY_MODEL_SCHEMA)};
-val case_metadata_json = {case_metadata_json};
-val provenance_json = {provenance_json};
-val proof_status_json = {proof_status_json};
-
-fun term_name tm =
-  (fst (bir_envSyntax.dest_BVar_string tm)) handle _ => term_to_string tm;
-
-fun state_status_json syst =
-  json_string (term_to_string (SYST_get_status syst));
-
-fun path_predicates_json preds =
-  json_list (List.map (fn pred => json_string (term_name pred)) preds);
-
-fun symbolic_value_json (bv, symbv) =
-  json_object [
-    ("name", json_string (term_name bv)),
-    ("term", json_string (term_to_string bv)),
-    ("value", json_string (symbv_to_string symbv))
-  ];
-
-type fragment_spec = {{
-  name : string,
-  entry_label_text : string,
-  exit_label_texts : string list,
-  lbl_tm : term,
-  stop_lbl_tms : term list,
-  start_label : IntInf.int,
-  end_label : IntInf.int option
-}};
-
-val fragment_specs : fragment_spec list = {fragment_specs};
-
-val _ = set_stub_unclassified_calls (pipelineConfigLib.get_stub_unclassified_calls ());
-val _ = set_allow_unmapped_memory_overapprox (pipelineConfigLib.get_allow_unmapped_memory_overapprox ());
-
-fun configure_fragment_range (spec : fragment_spec) =
-  case #end_label spec of
-      SOME stop_label => set_active_fragment_range (#start_label spec, stop_label)
-    | NONE => clear_active_fragment_range ();
-
-fun run_fragment (spec : fragment_spec) =
-  let
-    val _ = configure_fragment_range spec;
-    val lbl_tm = #lbl_tm spec;
-    val stop_lbl_tms = #stop_lbl_tms spec;
-    val syst = init_state lbl_tm prog_vars;
-    val syst = state_add_preds "init_pred" [``bir_exp_true``] syst;
-    val systs = symb_exec_to_stop (abpfun false) n_dict bl_dict_ [syst] stop_lbl_tms adr_dict [];
-    val (systs_noassertfailed, _) =
-      List.partition (fn syst => not (identical (SYST_get_status syst) BST_AssertionViolated_tm)) systs;
-    val predlists = List.map (fn syst => ((rev o SYST_get_pred) syst)) systs_noassertfailed;
-    val predlists_refined = List.map (fn lst => bir_symbexec_sortLib.removeDuplicates lst) predlists;
-    val tree = predlist_to_tree predlists_refined;
-    val vals_list = bir_symbexec_treeLib.symb_execs_vals_term systs_noassertfailed [];
-    val sort_vals = bir_symbexec_sortLib.refine_symb_val_list vals_list;
-    val valtr = tree_with_value tree sort_vals;
-    val sapic_process = sbir_tree_sapic_process sort_vals (purge_tree valtr);
-    val refined_process = refine_process sapic_process;
-    val sapic_text = process_to_string refined_process;
-    val model_json =
-      json_object [
-        ("name", json_string (#name spec)),
-        ("entry_label", #entry_label_text spec),
-        ("exit_labels", json_list (#exit_label_texts spec)),
-        ("total_states", json_int (List.length systs)),
-        ("assertion_clean_states", json_int (List.length systs_noassertfailed)),
-        ("final_statuses", json_list (List.map state_status_json systs)),
-        ("path_predicates", json_list (List.map path_predicates_json predlists_refined)),
-        ("symbolic_values", json_list (List.map symbolic_value_json sort_vals)),
-        ("sapic", json_string sapic_text)
-      ];
-  in
-    (#name spec, sapic_text, model_json)
-  end;
-
-fun append_text (path, content) =
-  let
-    val out_stream = TextIO.openAppend path;
-  in
-    (TextIO.output (out_stream, content); TextIO.closeOut out_stream)
-  end;
-
-fun is_empty_sapic_process text =
-  text = "0";
-
-val model_prefix =
-  "{{" ^ String.concatWith "," [
-    json_field ("schema", json_string binary_model_schema),
-    json_field ("case", case_metadata_json),
-    json_field ("provenance", provenance_json),
-    json_field ("proof_status", proof_status_json)
-  ] ^ "," ^ json_string "fragments" ^ ":[";
-
-fun write_fragment_outputs [] _ _ = ()
-  | write_fragment_outputs (spec :: rest) sapic_first model_first =
-      let
-        val (_, sapic_text, model_json) = run_fragment spec;
-        val emit_sapic = not (is_empty_sapic_process sapic_text);
-        val sapic_prefix = if sapic_first then "" else "\\n\\n";
-        val model_prefix = if model_first then "" else ",";
-        val next_sapic_first = if emit_sapic then false else sapic_first;
-      in
-        if emit_sapic then
-          append_text ({_quote_sml(sapic_output.resolve())}, sapic_prefix ^ sapic_text)
-        else
-          ();
-        append_text ({_quote_sml(model_output.resolve())}, model_prefix ^ model_json);
-        write_fragment_outputs rest next_sapic_first false
-      end;
-
-val _ = write_sapic_text ({_quote_sml(sapic_output.resolve())}, "");
-val _ = write_binary_model_text ({_quote_sml(model_output.resolve())}, model_prefix);
-val _ = write_fragment_outputs fragment_specs true true;
-val _ = append_text ({_quote_sml(model_output.resolve())}, "]}}\\n");
-val _ = export_theory();
-"""
+    content = _render_sml_template(
+        "symexec_runner.sml",
+        theory=theory,
+        pipeline_yaml=_quote_sml(pipeline_yaml.resolve()),
+        runner_theory=_quote_sml(runner_theory),
+        theory_db=_quote_sml(theory),
+        theorem_name=_quote_sml(theory + "_thm"),
+        prog_vars=_extra_var_terms(case, "prog_vars_base"),
+        binary_model_schema=_quote_sml(BINARY_MODEL_SCHEMA),
+        case_metadata_json=case_metadata_json,
+        provenance_json=provenance_json,
+        proof_status_json=proof_status_json,
+        fragment_specs=fragment_specs,
+        sapic_output=_quote_sml(run_sapic_output.resolve()),
+        model_output=_quote_sml(run_model_output.resolve()),
+    )
     holmake_text = _holmakefile_content(layout, hol_source_root)
     holmakefile.write_text(holmake_text, encoding="utf-8")
     holmakefile_snapshot.write_text(holmake_text, encoding="utf-8")
     runner.write_text(content, encoding="utf-8")
-    return {
-        "runner": runner,
-        "holmakefile": holmakefile_snapshot,
-        "sapic": sapic_output,
-        "model": model_output,
-        "pipeline_yaml": pipeline_yaml,
-        "runner_theory": layout.work / ".hol" / "objs" / f"{runner_theory}Theory.uo",
-        "hol_source_root": hol_source_root,
-    }
+    return SymexecArtifacts(
+        runner=runner,
+        holmakefile=holmakefile_snapshot,
+        sapic=final_sapic_output,
+        model=final_model_output,
+        run_sapic=run_sapic_output,
+        run_model=run_model_output,
+        pipeline_yaml=pipeline_yaml,
+        runner_theory=layout.work / ".hol" / "objs" / f"{runner_theory}Theory.uo",
+        hol_source_root=hol_source_root,
+    )
 
 
 def write_lift_descriptor(case: CaseConfig, layout: BuildLayout) -> Path:
@@ -815,99 +752,149 @@ def run_symexec_stage(
     holmake: Path = DEFAULT_HOLMAKE,
     holba: Path = DEFAULT_HOLBA_DIR,
 ) -> dict[str, Any]:
-    artifacts = generate_symexec_runner(case, layout, holmake=holmake, holba=holba)
+    attempt_sapic: Path | None = None
+    attempt_model: Path | None = None
+    if execute:
+        attempt_sapic, attempt_model = _symexec_attempt_artifacts(case, layout)
+    artifacts = generate_symexec_runner(
+        case,
+        layout,
+        holmake=holmake,
+        holba=holba,
+        sapic_output=attempt_sapic,
+        model_output=attempt_model,
+    )
     request = {
         "stage": "symexec",
         "status": "configured",
         "fragments": case.fragments,
         "extra_variables": case.execution.get("extra_variables", []),
-        "runner": str(artifacts["runner"]),
-        "hol_source_root": str(artifacts["hol_source_root"]),
-        "pipeline_yaml": str(artifacts["pipeline_yaml"]),
-        "model_output": str(artifacts["model"]),
+        "runner": str(artifacts.runner),
+        "hol_source_root": str(artifacts.hol_source_root),
+        "pipeline_yaml": str(artifacts.pipeline_yaml),
+        "sapic_output": str(artifacts.sapic),
+        "run_sapic_output": str(artifacts.run_sapic),
+        "model_output": str(artifacts.model),
+        "run_model_output": str(artifacts.run_model),
         "case_config_sha256": case_config_sha256(case),
     }
     request_path = layout.tree / "symexec-request.json"
     _write_json(request_path, request)
     stage_data = dict(request)
-    stage_data["runner_sha256"] = sha256_file(artifacts["runner"])
-    stage_data["holmakefile_sha256"] = sha256_file(artifacts["holmakefile"])
-    stage_data["pipeline_yaml_sha256"] = sha256_file(artifacts["pipeline_yaml"])
-    stage_data["label_diagnostics"] = validate_fragment_labels(case, layout)
+    stage_data["runner_sha256"] = sha256_file(artifacts.runner)
+    stage_data["holmakefile_sha256"] = sha256_file(artifacts.holmakefile)
+    stage_data["pipeline_yaml_sha256"] = sha256_file(artifacts.pipeline_yaml)
+    label_diagnostics = validate_fragment_labels(case, layout, require_metadata=execute)
+    stage_data["label_diagnostics"] = label_diagnostics
+    if label_diagnostics:
+        stage_data.setdefault("diagnostics", []).extend(label_diagnostics)
     artifact_map = {
         "symexec_request": request_path,
-        "symexec_runner": artifacts["runner"],
-        "symexec_holmakefile": artifacts["holmakefile"],
-        "symexec_pipeline_yaml": artifacts["pipeline_yaml"],
+        "symexec_runner": artifacts.runner,
+        "symexec_holmakefile": artifacts.holmakefile,
+        "symexec_pipeline_yaml": artifacts.pipeline_yaml,
     }
 
     if execute:
+        if any(item.get("severity") == "error" for item in label_diagnostics):
+            stage_data["status"] = "validation_failed"
+            update_manifest(case, layout, command="symexec", stage="symexec", stage_data=stage_data, artifacts=artifact_map)
+            raise StageError(f"symbolic execution labels failed validation for {case.name}; see {layout.manifest_path}")
         log_path = layout.logs / "symexec-holmake.log"
-        target = artifacts["runner_theory"].name
+        target = artifacts.runner_theory.name
+        _remove_stale_artifact(artifacts.runner_theory)
+        _remove_stale_artifact(artifacts.run_sapic)
+        _remove_stale_artifact(artifacts.run_model)
         result = _run_holmake(layout, target, log_path, holmake=holmake, holba=holba)
         stage_data["status"] = "generated_unchecked" if result.returncode == 0 else "validation_failed"
         stage_data["exit_code"] = result.returncode
         stage_data["log"] = str(log_path)
         artifact_map["symexec_log"] = log_path
-        artifact_map["symexec_theory_uo"] = artifacts["runner_theory"]
+        artifact_map["symexec_theory_uo"] = artifacts.runner_theory
         if result.returncode != 0:
             sapic_source = case.artifacts.get("sapic_source")
             if allow_fixture_fallback and sapic_source and sapic_source.exists():
-                shutil.copyfile(sapic_source, artifacts["sapic"])
+                copied_fixture = False
+                if artifacts.sapic.exists():
+                    stage_data["fallback_preserved_existing_sapic"] = str(artifacts.sapic)
+                    stage_data.setdefault("diagnostics", []).append(
+                        {
+                            "severity": "warning",
+                            "code": "migration_sapic_source_preserved_existing",
+                            "message": (
+                                "symexec runner failed; kept existing generated Sapic artifact "
+                                f"{artifacts.sapic} instead of overwriting it with {sapic_source}"
+                            ),
+                        }
+                    )
+                else:
+                    shutil.copyfile(sapic_source, artifacts.sapic)
+                    copied_fixture = True
+                if artifacts.model.exists():
+                    stage_data["fallback_preserved_existing_binary_model"] = str(artifacts.model)
                 stage_data["status"] = "backend_partial"
                 stage_data["fallback_sapic_source"] = str(sapic_source)
+                fallback_message = (
+                    f"symexec runner failed; copied checked-in Sapic fixture {sapic_source}"
+                    if copied_fixture
+                    else f"symexec runner failed; fixture Sapic source is available at {sapic_source}"
+                )
                 stage_data.setdefault("diagnostics", []).append(
                     {
                         "severity": "warning",
                         "code": "migration_sapic_source",
-                        "message": f"symexec runner failed; copied checked-in Sapic fixture {sapic_source}",
+                        "message": fallback_message,
                     }
                 )
-                artifact_map["sapic"] = artifacts["sapic"]
+                artifact_map["sapic"] = artifacts.sapic
+                if artifacts.model.exists():
+                    artifact_map["binary_model"] = artifacts.model
             else:
                 update_manifest(case, layout, command="symexec", stage="symexec", stage_data=stage_data, artifacts=artifact_map)
                 hint = ""
                 if sapic_source and sapic_source.exists():
                     hint = "; pass --allow-fixture-fallback to copy artifacts.sapic_source instead"
                 raise StageError(f"HOL symbolic execution failed for {case.name}; see {log_path}{hint}")
-        elif not artifacts["runner_theory"].exists():
+        elif not artifacts.runner_theory.exists():
             stage_data["status"] = "validation_failed"
             stage_data.setdefault("diagnostics", []).append(
                 {
                     "severity": "error",
                     "code": "missing_hol_artifact",
-                    "message": f"HOL symbolic execution completed but did not produce {artifacts['runner_theory']}",
+                    "message": f"HOL symbolic execution completed but did not produce {artifacts.runner_theory}",
                 }
             )
             update_manifest(case, layout, command="symexec", stage="symexec", stage_data=stage_data, artifacts=artifact_map)
             raise StageError(
                 f"HOL symbolic execution did not produce expected theory object for {case.name}: "
-                f"{artifacts['runner_theory']}"
+                f"{artifacts.runner_theory}"
             )
-        elif artifacts["sapic"].exists():
-            _format_sapic_artifact(artifacts["sapic"])
-            artifact_map["sapic"] = artifacts["sapic"]
+        elif artifacts.run_sapic.exists():
+            _format_sapic_artifact(artifacts.run_sapic)
         if result.returncode == 0:
             model_diagnostics, model_metadata = finalize_binary_model(
                 case,
                 layout,
-                model_path=artifacts["model"],
-                sapic_path=artifacts["sapic"],
+                model_path=artifacts.run_model,
+                sapic_path=artifacts.run_sapic,
             )
             stage_data.update(model_metadata)
             if model_diagnostics:
                 stage_data.setdefault("diagnostics", []).extend(model_diagnostics)
             if any(item.get("severity") == "error" for item in model_diagnostics):
                 stage_data["status"] = "validation_failed"
-            artifact_map["binary_model"] = artifacts["model"]
-            coverage = sapic_translation_coverage(case, layout, artifacts["sapic"])
+            coverage = sapic_translation_coverage(case, layout, artifacts.run_sapic)
             stage_data["translation_coverage"] = coverage
             coverage_diagnostics = coverage.get("diagnostics", [])
             if coverage_diagnostics:
                 stage_data.setdefault("diagnostics", []).extend(coverage_diagnostics)
             if any(item.get("severity") == "error" for item in coverage_diagnostics):
                 stage_data["status"] = "validation_failed"
+            if _replace_artifact(artifacts.run_sapic, artifacts.sapic):
+                artifact_map["sapic"] = artifacts.sapic
+            if _replace_artifact(artifacts.run_model, artifacts.model):
+                artifact_map["binary_model"] = artifacts.model
 
     artifact_map.update(write_source_segment_files(case, layout, folders=("tree", "model", "sapic")))
     update_manifest(case, layout, command="symexec", stage="symexec", stage_data=stage_data, artifacts=artifact_map)
-    return {"request": request_path, **artifacts, "stage": stage_data}
+    return {"request": request_path, **artifacts.as_dict(), "stage": stage_data}

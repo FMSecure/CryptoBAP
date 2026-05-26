@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -105,23 +106,37 @@ def _run_tamarin_squirrel_export(tamarin: Path, spthy: Path, sp: Path, log_path:
     if not tamarin.exists():
         raise BackendError(f"tamarin-prover not found: {tamarin}")
     sp.parent.mkdir(parents=True, exist_ok=True)
-    result = subprocess.run(
-        [
-            str(tamarin.resolve()),
-            "--derivcheck-timeout=0",
-            "--output-module=squirrel",
-            f"--output={sp.resolve()}",
-            str(spthy.resolve()),
-        ],
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+    temp_handle = tempfile.NamedTemporaryFile(
+        dir=sp.parent,
+        prefix=f".{sp.name}.",
+        suffix=".tmp",
+        delete=False,
     )
-    _write_log(log_path, result.stdout)
-    if result.returncode != 0:
-        raise BackendError(f"Tamarin Squirrel export failed; see {log_path}")
-    if not sp.exists():
-        raise BackendError(f"Tamarin Squirrel export did not create {sp}; see {log_path}")
+    temp_handle.close()
+    temp_sp = Path(temp_handle.name)
+    temp_sp.unlink()
+    try:
+        result = subprocess.run(
+            [
+                str(tamarin.resolve()),
+                "--derivcheck-timeout=0",
+                "--output-module=squirrel",
+                f"--output={temp_sp.resolve()}",
+                str(spthy.resolve()),
+            ],
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+        _write_log(log_path, result.stdout)
+        if result.returncode != 0:
+            raise BackendError(f"Tamarin Squirrel export failed; see {log_path}")
+        if not temp_sp.exists() or temp_sp.stat().st_size == 0:
+            raise BackendError(f"Tamarin Squirrel export did not create {sp}; see {log_path}")
+        temp_sp.replace(sp)
+    finally:
+        if temp_sp.exists():
+            temp_sp.unlink()
 
 
 def export_squirrel(
@@ -258,5 +273,5 @@ def validate_backend_outputs(
                 }
             )
     elif sp.exists():
-        diagnostics.append({"severity": "warning", "code": "missing_squirrel_binary", "message": str(squirrel)})
+        diagnostics.append({"severity": "error", "code": "missing_squirrel_binary", "message": str(squirrel)})
     return diagnostics

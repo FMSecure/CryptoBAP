@@ -24,12 +24,12 @@ def parse_lifted_labels(text: str) -> set[int]:
     return labels
 
 
-def validate_fragment_labels(case: CaseConfig, layout: BuildLayout) -> list[dict[str, Any]]:
+def validate_fragment_labels(case: CaseConfig, layout: BuildLayout, *, require_metadata: bool = False) -> list[dict[str, Any]]:
     metadata_path = layout.bir / "lifted-labels.json"
     if not metadata_path.exists():
         return [
             {
-                "severity": "warning",
+                "severity": "error" if require_metadata else "warning",
                 "code": "missing_lifted_label_metadata",
                 "message": "could not validate labels because lift metadata is missing",
             }

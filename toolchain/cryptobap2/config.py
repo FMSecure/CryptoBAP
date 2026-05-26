@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .paths import CRYPTOBAP2_ROOT, DEFAULT_CASE_DIR, resolve_under_root
+from .paths import CRYPTOBAP2_ROOT, DEFAULT_CASE_DIR, resolve_config_path
 from .schema import SchemaDiagnostic, validate_case_schema
 
 
@@ -47,15 +47,32 @@ class CaseConfig:
     def arch(self) -> str:
         return str(self.raw.get("arch", "arm8"))
 
+    def _resolve_path(self, value: object) -> Path:
+        path = Path(str(value)).expanduser()
+        if path.is_absolute():
+            return path.resolve()
+
+        root_candidate = CRYPTOBAP2_ROOT / path
+        try:
+            self.path.resolve().relative_to(CRYPTOBAP2_ROOT.resolve())
+            case_is_in_repo = True
+        except ValueError:
+            case_is_in_repo = False
+        if case_is_in_repo:
+            return root_candidate.resolve()
+        if self.path.suffix.lower() in {".yaml", ".yml"}:
+            return (self.path.parent / path).resolve()
+        return root_candidate.resolve()
+
     @property
     def input_da(self) -> Path | None:
         value = self.raw.get("input", {}).get("da") if isinstance(self.raw.get("input"), dict) else None
-        return resolve_under_root(value) if value else None
+        return self._resolve_path(value) if value else None
 
     @property
     def input_binary(self) -> Path | None:
         value = self.raw.get("input", {}).get("binary") if isinstance(self.raw.get("input"), dict) else None
-        return resolve_under_root(value) if value else None
+        return self._resolve_path(value) if value else None
 
     @property
     def theory(self) -> str:
@@ -105,7 +122,7 @@ class CaseConfig:
         if not isinstance(value, dict):
             return {}
         return {
-            key: resolve_under_root(path)
+            key: self._resolve_path(path)
             for key, path in value.items()
             if path is not None and str(path) != ""
         }
@@ -159,7 +176,7 @@ def resolve_case(value: str | Path) -> Path:
     if path.exists():
         return path.resolve()
     if path.suffix:
-        candidate = resolve_under_root(path)
+        candidate = resolve_config_path(path)
     else:
         candidate = DEFAULT_CASE_DIR / f"{path}.yaml"
     if candidate.exists():

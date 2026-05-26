@@ -213,7 +213,7 @@ def _load_case_allow_incomplete(case_arg: str, args: argparse.Namespace) -> Case
     return CaseConfig(path=path, raw=seeded)
 
 
-def _load_direct_input_case(args: argparse.Namespace) -> tuple[CaseConfig, BuildLayout]:
+def _load_direct_input_case(args: argparse.Namespace, *, prepare_for_lift: bool = True) -> tuple[CaseConfig, BuildLayout]:
     input_path = Path(args.case).expanduser().resolve()
     if not input_path.exists():
         raise FileNotFoundError(f"input does not exist: {input_path}")
@@ -225,20 +225,24 @@ def _load_direct_input_case(args: argparse.Namespace) -> tuple[CaseConfig, Build
     case = CaseConfig(path=input_path, raw=raw)
     layout = layout_for_case(case, args.build_root)
     ensure_layout(layout)
-    if not is_da:
+    if prepare_for_lift and not is_da:
         case = _prepare_case_for_lift(args, case, layout)
-    return _complete_case_from_da(args, case, layout), layout
+    if prepare_for_lift:
+        case = _complete_case_from_da(args, case, layout)
+    return case, layout
 
 
 def _load_pipeline_case(args: argparse.Namespace, *, create: bool = True) -> tuple[CaseConfig, BuildLayout]:
+    prepare_for_lift = getattr(args, "target", None) in {None, "squirrel", "all"}
     if _is_direct_input(args.case):
-        return _load_direct_input_case(args)
+        return _load_direct_input_case(args, prepare_for_lift=prepare_for_lift)
     case = _load_case_allow_incomplete(args.case, args)
     layout = layout_for_case(case, args.build_root)
     if create:
         ensure_layout(layout)
-    case = _prepare_case_for_lift(args, case, layout)
-    case = _complete_case_from_da(args, case, layout)
+    if prepare_for_lift:
+        case = _prepare_case_for_lift(args, case, layout)
+        case = _complete_case_from_da(args, case, layout)
     return case, layout
 
 
@@ -367,6 +371,8 @@ def cmd_symexec(args: argparse.Namespace) -> int:
         allow_fixture_fallback=args.allow_fixture_fallback,
     )
     update_manifest(case, layout, tool_paths=_tool_paths(args))
+    if result.get("stage", {}).get("status") == "validation_failed":
+        raise StageError(f"symbolic execution validation failed for {case.name}; see {layout.manifest_path}")
     print(result["runner"])
     return 0
 
@@ -446,14 +452,15 @@ def cmd_run(args: argparse.Namespace) -> int:
         raise CaseConfigError("; ".join(errors))
     _require_spthy_source_for_target(case, args.target)
 
-    run_lift_stage(case, layout, holmake=args.holmake, holba=args.holba)
-    run_symexec_stage(
-        case,
-        layout,
-        holmake=args.holmake,
-        holba=args.holba,
-        allow_fixture_fallback=args.allow_fixture_fallback,
-    )
+    if args.target in {"squirrel", "all"}:
+        run_lift_stage(case, layout, holmake=args.holmake, holba=args.holba)
+        run_symexec_stage(
+            case,
+            layout,
+            holmake=args.holmake,
+            holba=args.holba,
+            allow_fixture_fallback=args.allow_fixture_fallback,
+        )
 
     if args.target in {"tamarin", "all"}:
         _export_tamarin_source(case, layout, tamarin=args.tamarin)
@@ -533,8 +540,9 @@ def cmd_disassemble(args: argparse.Namespace) -> int:
 
 def cmd_doctor(args: argparse.Namespace) -> int:
     if args.install_ghidra and resolve_ghidra_headless(args.ghidra) is None:
-        install_ghidra()
+        args.ghidra = install_ghidra().headless
     print(f"cryptobap2 {__version__}")
+    missing_dependency = False
     for name, status in [
         ("holba", {"path": str(args.holba), "exists": args.holba.exists(), "executable": False}),
         ("holmake", executable_status(args.holmake)),
@@ -543,15 +551,18 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         ("ghidra", ghidra_status(args.ghidra)),
     ]:
         marker = "ok" if status["exists"] and (name == "holba" or status["executable"]) else "missing"
+        missing_dependency = missing_dependency or marker == "missing"
         print(f"{marker}: {name}: {status['path']}")
     java = java_status()
     java_marker = "ok" if java["satisfies_ghidra"] else "missing"
+    missing_dependency = missing_dependency or java_marker == "missing"
     print(f"{java_marker}: java>=21: {java['path']} ({java.get('version') or 'unknown version'})")
     try:
         import yaml  # type: ignore
 
         print(f"ok: PyYAML: {yaml.__version__}")
     except Exception as exc:
+        missing_dependency = True
         print(f"missing: PyYAML: {exc}")
 
     cases = sorted(DEFAULT_CASE_DIR.glob("*.yaml"))
@@ -562,7 +573,7 @@ def cmd_doctor(args: argparse.Namespace) -> int:
         debt_findings.extend(check_case_config(case))
     unsafe = check_failed(debt_findings, strict=True)
     print(("unsafe" if unsafe else "ok") + f": strict trust findings: {len(debt_findings)}")
-    return 1 if unsafe and args.strict else 0
+    return 1 if args.strict and (unsafe or missing_dependency) else 0
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -603,7 +614,7 @@ def build_parser() -> argparse.ArgumentParser:
     scaffold.add_argument("--no-infer-crypto", action="store_true", help="leave functions.library/adversary/crypto empty")
     scaffold.add_argument("--from-da", action="store_true", help="treat input as an existing HolBA-compatible .da file")
     scaffold.add_argument("--da-output", type=Path, help="where to store generated .da text when input is a binary")
-    scaffold.add_argument("--install-ghidra", action="store_true", help="install Ghidra into opt/ when unavailable")
+    scaffold.add_argument("--install-ghidra", action="store_true", help="install a managed Ghidra copy when unavailable")
     scaffold.add_argument("--force", action="store_true")
     scaffold.set_defaults(func=cmd_scaffold_case)
 
@@ -612,14 +623,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     doctor = subparsers.add_parser("doctor", help="check CryptoBAP2 toolchain availability and trust debt")
     doctor.add_argument("--strict", action="store_true", help="exit non-zero when strict trust findings exist")
-    doctor.add_argument("--install-ghidra", action="store_true", help="install Ghidra into opt/ when unavailable")
+    doctor.add_argument("--install-ghidra", action="store_true", help="install a managed Ghidra copy when unavailable")
     doctor.set_defaults(func=cmd_doctor)
 
-    install = subparsers.add_parser("install-ghidra", help="download and install Ghidra into opt/")
+    install = subparsers.add_parser("install-ghidra", help="download and install managed Ghidra")
     install.add_argument("--version", default=DEFAULT_GHIDRA_VERSION)
     install.add_argument("--url", help="Ghidra release zip URL")
     install.add_argument("--sha256", help=f"expected release zip SHA-256; defaults to {DEFAULT_GHIDRA_SHA256} for {DEFAULT_GHIDRA_VERSION}")
-    install.add_argument("--force", action="store_true", help="replace an existing opt/ghidra_<version> install")
+    install.add_argument("--force", action="store_true", help="replace an existing managed Ghidra install")
     install.set_defaults(func=cmd_install_ghidra)
 
     disassemble = subparsers.add_parser("disassemble", help="disassemble a binary to HolBA-compatible .da text")
@@ -627,7 +638,7 @@ def build_parser() -> argparse.ArgumentParser:
     disassemble.add_argument("--arch", required=True, help="architecture, e.g. arm8 or m0")
     disassemble.add_argument("--output", required=True, help="output .da path")
     disassemble.add_argument("--sections", default=".text", help="comma-separated executable sections to emit")
-    disassemble.add_argument("--install-ghidra", action="store_true", help="install Ghidra into opt/ when unavailable")
+    disassemble.add_argument("--install-ghidra", action="store_true", help="install a managed Ghidra copy when unavailable")
     disassemble.set_defaults(func=cmd_disassemble)
 
     def add_binary_input_options(sub: argparse.ArgumentParser) -> None:
@@ -673,10 +684,10 @@ def build_parser() -> argparse.ArgumentParser:
                 action="store_true",
                 help="also emit a commented, human-readable Squirrel view beside the canonical .sp",
             )
-            sub.add_argument("--install-ghidra", action="store_true", help="install Ghidra into opt/ when unavailable")
+            sub.add_argument("--install-ghidra", action="store_true", help="install a managed Ghidra copy when unavailable")
             sub.add_argument("--strict", action="store_true", help="fail on proof/status/debt findings")
         if name in {"lift", "symexec"}:
-            sub.add_argument("--install-ghidra", action="store_true", help="install Ghidra into opt/ when unavailable")
+            sub.add_argument("--install-ghidra", action="store_true", help="install a managed Ghidra copy when unavailable")
         if name in {"symexec", "extract-model", "run"}:
             sub.add_argument(
                 "--allow-fixture-fallback",
@@ -684,7 +695,7 @@ def build_parser() -> argparse.ArgumentParser:
                 help="allow failed symbolic execution to copy artifacts.sapic_source as a partial migration fallback",
             )
         if name == "extract-model":
-            sub.add_argument("--install-ghidra", action="store_true", help="install Ghidra into opt/ when unavailable")
+            sub.add_argument("--install-ghidra", action="store_true", help="install a managed Ghidra copy when unavailable")
         sub.set_defaults(func=func)
 
     export = subparsers.add_parser("export", help="export to Tamarin and/or Squirrel artifacts")

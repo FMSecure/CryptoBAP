@@ -2,6 +2,7 @@
 .hol/
 .HOLMK
 .hollogs
+HOL_ERR
 *Theory.txt
 *Theory.dat
 *Theory.sig
@@ -9,7 +10,6 @@
 *.ui
 *.uo
 *~
-*.exe
 *-heap
 
 # Makefile related stuff
@@ -19,16 +19,59 @@ holba-tests.log
 holba-tests.success
 exec_output.txt
 
-# Temporary BIR files
+# CryptoBAP2 generated artifacts
 tempdir/
 *.ps
 _build/
+cryptobap2-build/
 _cryptobap2-support-cache/
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+.Python
+.venv/
+venv/
+env/
+ENV/
+.eggs/
+*.egg-info/
+pip-wheel-metadata/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.pytype/
+.tox/
+.nox/
+.hypothesis/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Logs and temporary files
+logs/
+*.log
+*.tmp
+*.temp
+*.bak
+*.orig
+*.rej
+*.pid
+*.seed
+*.stackdump
 
 # OS specific
 .DS_Store
+._*
+.AppleDouble
+.LSOverride
+Thumbs.db
+Desktop.ini
 
 # Vim (from https://github.com/github/gitignore/blob/master/Global/Vim.gitignore)
 ## Swap
@@ -48,24 +91,49 @@ tags
 ## Persistent undo
 [._]*.un~
 
+# Emacs
+\#*\#
+.\#*
+
 # IntelliJ IDEs
-.idea
+.idea/
+*.iml
 
 # VS Code
-.vscode
+.vscode/
+.hol-vscode/
+
+# Eclipse and Java tooling
+.project
+.classpath
+.settings/
+.gradle/
+*.class
+
+# Local agent/tooling state
+.agents/
+.codex/
+.cache/
 
 # opt for dependencies within
-opt
+opt/
 
-# logs for general purpose logging
-logs
-
-# configuration files
+# Local configuration files
 config.env.sh
+.env
+.env.*
+!.env.example
+*.local
+*.local.sh
 
 # binary files compiled for analysis
 *.elf
 *.o
-!examples/xor/input/xor.o
+*.exe
+*.out
+*.a
+*.so
+*.dylib
+*.dll
 # generally all .da files
 #*.da

@@ -173,7 +173,7 @@ def _fresh_c_lib_index(preferred: int, used: set[int]) -> int:
     return value
 
 
-def _synthesize_missing_sapic_call_stubs(data: dict[str, Any], sapic_path: Path) -> int:
+def _synthesize_missing_sapic_call_stubs(case: CaseConfig, data: dict[str, Any], sapic_path: Path) -> int:
     """Expose zero-process call fragments as explicit trace outputs.
 
     The HOL translator can reduce a selected fragment to Sapic ``0`` even when
@@ -204,7 +204,7 @@ def _synthesize_missing_sapic_call_stubs(data: dict[str, Any], sapic_path: Path)
             if not isinstance(callsite, int):
                 continue
             index = _fresh_c_lib_index(callsite, used)
-            outputs.append(f"(out({index}_C_Lib))")
+            outputs.append(f"(out({case.channel},{index}_C_Lib))")
         if not outputs:
             continue
 
@@ -247,7 +247,7 @@ def finalize_binary_model(
 
     if isinstance(data, dict):
         _enrich_readability_metadata(case, data)
-        synthesized_call_stubs = _synthesize_missing_sapic_call_stubs(data, sapic_path)
+        synthesized_call_stubs = _synthesize_missing_sapic_call_stubs(case, data, sapic_path)
         if synthesized_call_stubs:
             data.setdefault("translation_notes", {})
             if isinstance(data["translation_notes"], dict):

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import io
 import json
+import os
 import stat
 import tempfile
 import unittest
@@ -14,7 +16,18 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "toolchain"))
-XOR_FROM_BINARY_DA = ROOT / "examples" / "xor" / "build" / "xor-from-binary" / "bir" / "xor-from-binary.da"
+XOR_FROM_BINARY_DA = ROOT / "examples" / "binaries" / "protocols" / "xor" / "xor.da"
+
+
+def _require_fixture(path: Path) -> None:
+    if path.exists():
+        return
+    try:
+        display = path.relative_to(ROOT)
+    except ValueError:
+        display = path
+    raise unittest.SkipTest(f"fixture is not available: {display}")
+
 
 from cryptobap2.autocase import parse_da_functions, scaffold_case_from_da
 from cryptobap2.binary_model import BINARY_MODEL_SCHEMA, validate_binary_model_data
@@ -26,6 +39,7 @@ from cryptobap2.disassembly import (
     DEFAULT_GHIDRA_VERSION,
     DisassemblyError,
     ghidra_download_url,
+    ghidra_status,
     prepare_case_disassembly,
     resolve_ghidra_headless,
     run_ghidra_disassembly,
@@ -38,6 +52,7 @@ from cryptobap2.inference import (
     parse_da_function_analysis,
     render_case_yaml,
 )
+from cryptobap2.hol_support import _hash_file_marker
 from cryptobap2.manifest import case_config_sha256, update_manifest
 from cryptobap2.manifest import layout_for_case, load_manifest
 from cryptobap2.schema import validate_case_schema
@@ -156,6 +171,7 @@ execution:
 
     def test_scaffold_case_from_da_infers_return_fragments(self) -> None:
         da = XOR_FROM_BINARY_DA
+        _require_fixture(da)
         functions = parse_da_functions(da)
         self.assertIn("main", [function.name for function in functions])
 
@@ -386,6 +402,11 @@ Disassembly of section .text:
             data = load_yaml_subset(case_path)
 
         self.assertEqual(data["input"]["symbols"], ["foo", "LAB_00001020"])
+        self.assertIn("inference", data)
+        self.assertEqual(data["functions"], {"library": [], "adversary": [], "crypto": {}})
+        self.assertEqual(data["inference"]["library"], [])
+        self.assertEqual(data["inference"]["adversary"], [])
+        self.assertEqual(data["inference"]["crypto"], {})
 
     def test_scaffold_without_crypto_all_functions_scope_selects_functions(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -435,11 +456,13 @@ Disassembly of section .text:
         }
         for _name, (da, expected) in examples.items():
             with self.subTest(da=da):
+                _require_fixture(da)
                 result = infer_functions(da, symbols=None, max_functions=16)
                 self.assertEqual(result.crypto, expected)
 
     def test_all_functions_scope_finds_nordvpnd_nordlynx_config(self) -> None:
         da = ROOT / "examples" / "nordvpn" / "build" / "nordvpnd" / "bir" / "nordvpnd.da"
+        _require_fixture(da)
         result = infer_functions(da, symbols=None, max_functions=16, scope="all-functions")
         target = "github.com/NordSecurity/nordvpn-linux/daemon/vpn/nordlynx.wgQuickConfig"
         matches = [function for function in result.selected_functions if function.name == target]
@@ -451,6 +474,7 @@ Disassembly of section .text:
 
     def test_scaffold_case_cli_writes_yaml_from_da(self) -> None:
         da = XOR_FROM_BINARY_DA
+        _require_fixture(da)
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "draft.yaml"
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -476,6 +500,7 @@ Disassembly of section .text:
 
     def test_scaffold_case_cli_can_keep_empty_classifications(self) -> None:
         da = XOR_FROM_BINARY_DA
+        _require_fixture(da)
         with tempfile.TemporaryDirectory() as tmp:
             output = Path(tmp) / "draft.yaml"
             with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
@@ -496,6 +521,10 @@ Disassembly of section .text:
             self.assertEqual(code, 0)
             data = load_yaml_subset(output)
         self.assertEqual(data["functions"], {"library": [], "adversary": [], "crypto": {}})
+        self.assertIn("inference", data)
+        self.assertEqual(data["inference"]["library"], [])
+        self.assertEqual(data["inference"]["adversary"], [])
+        self.assertEqual(data["inference"]["crypto"], {})
 
     def test_stage_descriptors_and_manifest_are_written(self) -> None:
         case = load_case("xor")
@@ -522,9 +551,13 @@ Disassembly of section .text:
         self.assertFalse((layout.work / "src").exists())
 
     def test_stage_spthy_copies_configured_source_and_manifest_hashes(self) -> None:
-        case = load_case("xor")
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
+            source = root / "xor.spthy"
+            source.write_text("theory XOR_Pipeline\nbegin\nend\n", encoding="utf-8")
+            raw = json.loads(json.dumps(load_case("xor").raw))
+            raw["artifacts"]["tamarin_source"] = str(source)
+            case = CaseConfig(path=root / "xor.yaml", raw=raw)
             layout = layout_for_case(case, root)
             tamarin = self._write_fake_tamarin_exporter(root)
             artifacts = stage_spthy(case, layout, tamarin=tamarin)
@@ -684,8 +717,29 @@ Disassembly of section .text:
         with self.assertRaises(ValueError):
             render_case_yaml(raw)
 
+    def test_hol_support_file_marker_ignores_mtime_but_tracks_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "marker"
+            path.write_text("same", encoding="utf-8")
+            first = hashlib.sha256()
+            _hash_file_marker(first, "marker", path)
+
+            os.utime(path, (path.stat().st_atime + 10, path.stat().st_mtime + 10))
+            touched = hashlib.sha256()
+            _hash_file_marker(touched, "marker", path)
+
+            path.write_text("changed", encoding="utf-8")
+            changed = hashlib.sha256()
+            _hash_file_marker(changed, "marker", path)
+
+        self.assertEqual(first.hexdigest(), touched.hexdigest())
+        self.assertNotEqual(first.hexdigest(), changed.hexdigest())
+
     def test_bad_symbol_fails_non_strict_check(self) -> None:
         self.assertTrue(check_failed([Finding("error", "bad_symbol", "bad")], strict=False))
+        self.assertTrue(check_failed([Finding("error", "missing_squirrel_binary", "bad")], strict=False))
+        self.assertTrue(check_failed([Finding("error", "contains_cheat", "bad")], strict=False))
+        self.assertFalse(check_failed([Finding("warning", "backend_partial", "warn")], strict=False))
 
     def test_strict_debug_print_scan_ignores_sml_comments(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -693,14 +747,24 @@ Disassembly of section .text:
             path = root / "Sample.sml"
             path.write_text(
                 """(* val _ = print "commented" *)
+val message = "print only text"
 val _ = print "active"
 val _ = if true then () else print "guarded"
+val _ = (
+  print "multi";
+  ()
+)
+fun log x =
+  (print_term x; x)
 """,
                 encoding="utf-8",
             )
             findings = _scan_unguarded_debug_prints([root])
-        self.assertEqual(len(findings), 1)
-        self.assertEqual(findings[0].line, 2)
+        self.assertEqual([finding.line for finding in findings], [3, 6, 10])
+
+    def test_strict_source_trust_has_no_unguarded_sml_debug_prints(self) -> None:
+        findings = _scan_unguarded_debug_prints([ROOT / "src"], exclude_parts={"examples"})
+        self.assertEqual([], [(finding.path, finding.line) for finding in findings])
 
     def test_binary_model_schema_reports_bad_fragments(self) -> None:
         diagnostics = validate_binary_model_data(
@@ -766,6 +830,7 @@ val _ = if true then () else print "guarded"
             )
             layout = layout_for_case(case, root / "build")
             written = write_source_segment_files(case, layout, folders=("bir",))
+            self.assertEqual(written["source_segments_bir"].name, "sample.da.segments.txt")
             text = written["source_segments_bir"].read_text(encoding="utf-8")
 
         self.assertIn("### main", text)
@@ -793,6 +858,25 @@ val _ = if true then () else print "guarded"
             fake.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
             fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
             self.assertEqual(resolve_ghidra_headless(fake), fake.resolve())
+
+    def test_ghidra_resolution_uses_env_not_path_discovery(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            fake = Path(tmp) / "analyzeHeadless"
+            fake.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+            fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+
+            with mock.patch.dict(os.environ, {"PATH": str(tmp)}, clear=True), mock.patch(
+                "cryptobap2.disassembly.DEFAULT_GHIDRA_HEADLESS",
+                None,
+            ):
+                self.assertIsNone(resolve_ghidra_headless())
+                self.assertEqual(ghidra_status()["path"], "<missing:GHIDRA_HEADLESS|GHIDRA_HOME>")
+
+            with mock.patch.dict(os.environ, {"GHIDRA_HEADLESS": str(fake)}, clear=True), mock.patch(
+                "cryptobap2.disassembly.DEFAULT_GHIDRA_HEADLESS",
+                None,
+            ):
+                self.assertEqual(resolve_ghidra_headless(), fake.resolve())
 
     def test_default_ghidra_url_uses_known_version(self) -> None:
         url = ghidra_download_url(DEFAULT_GHIDRA_VERSION)
@@ -1130,6 +1214,95 @@ security_lemmas: []
         self.assertEqual(calls.count("SampleTheory.uo"), 2)
         self.assertTrue(any(call.startswith("CryptoBAP2Symexec_") for call in calls))
 
+    def test_symexec_cli_fails_validation_failed_stage(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            da = root / "sample.da"
+            da.write_text(
+                "\nfake:     file format elf64-littleaarch64\n\n\nDisassembly of section .text:\n\n000000000000003c <main>:\n  3c:\td503201f \tnop\n  84:\td65f03c0 \tret\n",
+                encoding="utf-8",
+            )
+            holmake = root / "Holmake"
+            holmake.write_text(
+                f"""#!/usr/bin/env python3
+import json
+import pathlib
+import re
+import sys
+
+target = sys.argv[1] if len(sys.argv) > 1 else ""
+objs = pathlib.Path(".hol/objs")
+objs.mkdir(parents=True, exist_ok=True)
+if target:
+    (objs / target).write_text("uo", encoding="utf-8")
+if "CryptoBAP2Symexec" in target:
+    script = next(pathlib.Path.cwd().glob("CryptoBAP2Symexec_*Script.sml"))
+    text = script.read_text()
+    sapic = re.search(r'write_sapic_text\\s*\\("([^"]+)"', text).group(1)
+    model = re.search(r'write_binary_model_text\\s*\\("([^"]+)"', text).group(1)
+    pathlib.Path(sapic).write_text("0", encoding="utf-8")
+    pathlib.Path(model).write_text(json.dumps({{
+        "schema": "{BINARY_MODEL_SCHEMA}",
+        "case": {{"name": "sample"}},
+        "fragments": [{{
+            "name": "main",
+            "entry_label": 60,
+            "exit_labels": [132],
+            "total_states": 1,
+            "assertion_clean_states": 1,
+            "path_predicates": [],
+            "symbolic_values": [],
+            "sapic": "0"
+        }}]
+    }}), encoding="utf-8")
+else:
+    script = next(pathlib.Path.cwd().glob("SampleScript.sml"))
+    text = script.read_text()
+    label_dump = re.search(r'TextIO.openOut "([^"]+)"', text).group(1)
+    pathlib.Path(label_dump).write_text("BL_Address (Imm64 60w) BL_Address (Imm64 132w)", encoding="utf-8")
+""",
+                encoding="utf-8",
+            )
+            holmake.chmod(holmake.stat().st_mode | stat.S_IXUSR)
+            case_path = root / "case.yaml"
+            case_path.write_text(
+                f"""
+name: sample
+arch: arm8
+channel: Channel
+input:
+  da: {da}
+  theory: Sample
+  symbols: [main]
+execution:
+  entry_label: 60
+  exit_labels: [132]
+backends: [squirrel]
+""",
+                encoding="utf-8",
+            )
+            stderr = io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(stderr):
+                code = cli_main(
+                    [
+                        "--build-root",
+                        str(root / "build"),
+                        "--holmake",
+                        str(holmake),
+                        "--holba",
+                        str(root),
+                        "symexec",
+                        str(case_path),
+                    ]
+                )
+            manifest = load_manifest(root / "build" / "sample" / "manifest.json")
+            diagnostic_codes = [item["code"] for item in manifest["stages"]["symexec"]["diagnostics"]]
+
+        self.assertEqual(code, 2)
+        self.assertIn("symbolic execution validation failed", stderr.getvalue())
+        self.assertEqual(manifest["stages"]["symexec"]["status"], "validation_failed")
+        self.assertIn("sapic_null_process", diagnostic_codes)
+
     def test_extract_model_accepts_binary_without_user_yaml(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -1215,8 +1388,28 @@ security_lemmas: []
     def test_run_tamarin_uses_target_scoped_backend_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            ghidra = self._write_fake_ghidra(root)
-            holmake = self._write_fake_extract_holmake(root)
+            ghidra_marker = root / "ghidra-called"
+            ghidra = root / "analyzeHeadless"
+            ghidra.write_text(
+                f"""#!/usr/bin/env python3
+import pathlib
+pathlib.Path({str(ghidra_marker)!r}).write_text("called", encoding="utf-8")
+raise SystemExit(99)
+""",
+                encoding="utf-8",
+            )
+            ghidra.chmod(ghidra.stat().st_mode | stat.S_IXUSR)
+            holmake_marker = root / "holmake-called"
+            holmake = root / "Holmake"
+            holmake.write_text(
+                f"""#!/usr/bin/env python3
+import pathlib
+pathlib.Path({str(holmake_marker)!r}).write_text("called", encoding="utf-8")
+raise SystemExit(99)
+""",
+                encoding="utf-8",
+            )
+            holmake.chmod(holmake.stat().st_mode | stat.S_IXUSR)
             tamarin = self._write_fake_tamarin_exporter(root)
             binary = root / "sample.o"
             binary.write_bytes(b"\x00\x01\x02\x03")
@@ -1274,7 +1467,12 @@ backends: [squirrel]
         self.assertFalse(sp_exists)
         self.assertEqual(manifest["config"]["backends"], ["squirrel"])
         self.assertEqual(manifest["stages"]["stage_spthy"]["status"], "generated_unchecked")
+        self.assertFalse(ghidra_marker.exists())
+        self.assertFalse(holmake_marker.exists())
+        self.assertNotIn("lift", manifest["stages"])
+        self.assertNotIn("symexec", manifest["stages"])
         self.assertNotIn("missing_artifact", [item["code"] for item in manifest["diagnostics"]])
+        self.assertNotIn("missing_lifted_label_metadata", [item["code"] for item in manifest["diagnostics"]])
 
     def test_extract_model_completes_minimal_binary_yaml(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

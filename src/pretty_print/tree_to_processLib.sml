@@ -59,6 +59,14 @@ fun read_events pred =
     in
 	trm
     end;
+
+fun configured_channel () =
+    let
+	val channel = pipelineConfigLib.get_channel ();
+	val name = mk_Name (PubName_tm, stringSyntax.fromMLstring channel);
+    in
+	mk_some (mk_Con name)
+    end;
 (*
 val vals_lis = [];
 val pred_be = “BExp_Den (BVar "994_R0" (BType_Imm Bit64))”*)    
@@ -133,7 +141,7 @@ fun bir_exp_symbvar_to_symbval vals_lis pred_be =
 fun vars_to_outs vars proc =
     case vars of
 	([]: term list) => proc
-      | h::t => (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term h)))),(vars_to_outs t proc)))
+      | h::t => (mk_ProcessAction ((mk_ChOut (configured_channel (), (fst(bir_exp_to_sapic_term h)))),(vars_to_outs t proc)))
 
 fun is_leaf tree =
     case tree of
@@ -189,17 +197,17 @@ fun sbir_tree_sapic_process sort_vals tree =
 		    (* val _ = print (term_to_string be); *)
 		    (* val _ = print "\n"; *)
 		in
-		    if (identical be (mk_BExp_Den b)) then (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
-		    else let
-			    val vars = get_birexp_vars be;
-			in	
-			    (mk_ProcessAction ((mk_ChOut (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(vars_to_outs vars (sbir_tree_sapic_process sort_vals str))))
+			    if (identical be (mk_BExp_Den b)) then (mk_ProcessAction ((mk_ChOut (configured_channel (), (fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
+			    else let
+				    val vars = get_birexp_vars be;
+				in
+				    (mk_ProcessAction ((mk_ChOut (configured_channel (), (fst(bir_exp_to_sapic_term b)))),(vars_to_outs vars (sbir_tree_sapic_process sort_vals str))))
+				end
 			end
-		end
 	    else if (String.isSuffix "Rep" namestr)
 	    then (mk_ProcessAction (Rep_tm,(sbir_tree_sapic_process sort_vals str)))
 	    else if (String.isSuffix "Adv" namestr)
-	    then (mk_ProcessAction ((mk_ChIn (mk_none(SapicTerm_t_ty),(fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
+		    then (mk_ProcessAction ((mk_ChIn (configured_channel (), (fst(bir_exp_to_sapic_term b)))),(sbir_tree_sapic_process sort_vals str)))
 	    else if ((String.isSuffix "event_true_cnd" namestr) orelse (String.isSuffix "event1" namestr) orelse (String.isSuffix "event2" namestr) orelse (String.isSuffix "event3" namestr) orelse (String.isSuffix "event_false_cnd" namestr))
 	    then (mk_ProcessAction ((mk_Event (mk_Fact(TermFact_tm,(listSyntax.mk_list ([(read_events namestr)],SapicTerm_t_ty))))),(sbir_tree_sapic_process sort_vals str)))	 
 	    else if ((is_BExp_Load b) orelse (is_BExp_Store b))

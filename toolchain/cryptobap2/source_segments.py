@@ -9,7 +9,6 @@ from .config import CaseConfig
 from .manifest import BuildLayout
 
 
-SOURCE_SEGMENTS_FILENAME = "wireguard.da.segments.txt"
 ARTIFACT_FOLDERS = ("bir", "tree", "model", "sapic", "spthy", "squirrel")
 
 _FUNCTION_RE = re.compile(r"^([0-9A-Fa-f]+)\s+<(.+)>:$")
@@ -87,6 +86,10 @@ def _format_lines(lines: Iterable[SourceLine]) -> list[str]:
 
 def _format_hex(value: int) -> str:
     return f"0x{value:x} / {value}"
+
+
+def _source_segments_filename(case: CaseConfig) -> str:
+    return f"{case.name}.da.segments.txt"
 
 
 def _render_segments(case: CaseConfig, artifact_folder: str) -> str:
@@ -181,7 +184,7 @@ def write_source_segment_files(
         if not isinstance(artifact_dir, Path):
             continue
         artifact_dir.mkdir(parents=True, exist_ok=True)
-        output = artifact_dir / SOURCE_SEGMENTS_FILENAME
+        output = artifact_dir / _source_segments_filename(case)
         output.write_text(_render_segments(case, folder), encoding="utf-8")
         written[f"source_segments_{folder}"] = output
     return written

@@ -94,11 +94,10 @@ fun pipeline_section () =
 fun get_theory_name () : string =
   yamlLib.toString (yamlLib.lookupExn (pipeline_section ()) "theory");
 
-fun get_entry_label () : int =
-  yamlLib.toInt (yamlLib.lookupExn (pipeline_section ()) "entry_label");
-
-fun get_exit_labels () : int list =
-  yamlLib.toIntList (yamlLib.lookupExn (pipeline_section ()) "exit_labels");
+fun get_channel () : string =
+  case yamlLib.lookup (pipeline_section ()) "channel" of
+      NONE => "Channel"
+    | SOME yaml => yamlLib.toString yaml;
 
 fun get_output_file () : string =
   yamlLib.toString (yamlLib.lookupExn (pipeline_section ()) "output_file");
@@ -156,6 +155,17 @@ fun get_fragment_specs () : fragment_spec list =
     | SOME (yamlLib.YNull) => []
     | SOME (yamlLib.YSequence items) => List.map parse_fragment_spec items
     | SOME _ => raise Fail "pipelineConfigLib: fragments must be a sequence";
+
+fun first_fragment () =
+  case get_fragment_specs () of
+      [] => raise Fail "pipelineConfigLib: no fragments configured"
+    | fragment :: _ => fragment;
+
+fun get_entry_label () : int =
+  #entry_label (first_fragment ());
+
+fun get_exit_labels () : int list =
+  #exit_labels (first_fragment ());
 
 (* ------------------------------------------------------------------ *)
 (*  Functions section                                                  *)

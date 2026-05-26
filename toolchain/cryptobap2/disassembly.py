@@ -70,10 +70,6 @@ def resolve_ghidra_headless(value: Path | None = None) -> Path | None:
     env_home = os.environ.get("GHIDRA_HOME")
     if env_home:
         candidates.append(Path(env_home).expanduser() / "support" / "analyzeHeadless")
-    on_path = shutil.which("analyzeHeadless")
-    if on_path:
-        candidates.append(Path(on_path))
-    candidates.extend(sorted(DEFAULT_OPT_DIR.glob("ghidra_*/support/analyzeHeadless"), reverse=True))
 
     seen: set[Path] = set()
     for candidate in candidates:
@@ -88,7 +84,7 @@ def resolve_ghidra_headless(value: Path | None = None) -> Path | None:
 
 def ghidra_status(value: Path | None = None) -> dict[str, object]:
     resolved = resolve_ghidra_headless(value)
-    path = resolved or value or DEFAULT_GHIDRA_HEADLESS or DEFAULT_OPT_DIR / "ghidra_*/support/analyzeHeadless"
+    path = resolved or value or DEFAULT_GHIDRA_HEADLESS or Path("<missing:GHIDRA_HEADLESS|GHIDRA_HOME>")
     return {
         "path": str(path),
         "exists": bool(resolved and resolved.exists()),
@@ -118,7 +114,6 @@ def _candidate_jdk_homes() -> list[Path]:
     if javac:
         candidates.append(Path(javac).resolve().parent.parent)
     candidates.extend(sorted(Path("/usr/lib/jvm").glob("*")))
-    candidates.extend(sorted((CRYPTOBAP2_ROOT.parent / "Isabelle2025-2" / "contrib").glob("jdk-*/arm64-linux")))
 
     out: list[Path] = []
     seen: set[Path] = set()
@@ -156,13 +151,14 @@ def java_status() -> dict[str, object]:
         "version": None,
         "major": None,
         "jdk": bool(jdk_home),
-        "satisfies_ghidra": bool(jdk_home),
+        "satisfies_ghidra": False,
     }
     if not java_path or not _is_executable(java_path):
         return status
     version, major = _java_major(java_path)
     status["version"] = version
     status["major"] = major
+    status["satisfies_ghidra"] = major is not None and major >= 21
     return status
 
 
@@ -326,51 +322,67 @@ def run_ghidra_disassembly(
     log_path = log_path or output.with_suffix(output.suffix + ".ghidra.log")
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="cryptobap2-ghidra-") as project_root:
-        project_root_path = Path(project_root)
-        ghidra_state = project_root_path / "state"
-        ghidra_env = os.environ.copy()
-        ghidra_env["HOME"] = str(ghidra_state / "home")
-        ghidra_env["XDG_CONFIG_HOME"] = str(ghidra_state / "config")
-        ghidra_env["XDG_CACHE_HOME"] = str(ghidra_state / "cache")
-        ghidra_env["XDG_DATA_HOME"] = str(ghidra_state / "data")
-        for state_dir in ("home", "config", "cache", "data"):
-            (ghidra_state / state_dir).mkdir(parents=True, exist_ok=True)
-        command = [
-            str(ghidra),
-            project_root,
-            "cryptobap2",
-            "-deleteProject",
-            "-import",
-            str(binary),
-            "-scriptPath",
-            str(GHIDRA_SCRIPT.parent),
-            "-postScript",
-            GHIDRA_SCRIPT.name,
-            str(output),
-            arch,
-            _sections_arg(sections),
-        ]
-        result = subprocess.run(
-            command,
-            env=ghidra_env,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-        )
-    log_path.write_text(result.stdout, encoding="utf-8")
+    temp_handle = tempfile.NamedTemporaryFile(
+        dir=output.parent,
+        prefix=f".{output.name}.",
+        suffix=".tmp",
+        delete=False,
+    )
+    temp_handle.close()
+    temp_output = Path(temp_handle.name)
+    temp_output.unlink()
 
-    diagnostics = validate_da(output)
-    if result.returncode != 0:
-        diagnostics.append(
-            {
-                "severity": "error",
-                "code": "ghidra_failed",
-                "message": f"analyzeHeadless exited with {result.returncode}; see {log_path}",
-            }
-        )
-    if any(item["severity"] == "error" for item in diagnostics):
-        raise DisassemblyError(f"Ghidra disassembly failed; see {log_path}")
+    try:
+        with tempfile.TemporaryDirectory(prefix="cryptobap2-ghidra-") as project_root:
+            project_root_path = Path(project_root)
+            ghidra_state = project_root_path / "state"
+            ghidra_env = os.environ.copy()
+            ghidra_env["HOME"] = str(ghidra_state / "home")
+            ghidra_env["XDG_CONFIG_HOME"] = str(ghidra_state / "config")
+            ghidra_env["XDG_CACHE_HOME"] = str(ghidra_state / "cache")
+            ghidra_env["XDG_DATA_HOME"] = str(ghidra_state / "data")
+            for state_dir in ("home", "config", "cache", "data"):
+                (ghidra_state / state_dir).mkdir(parents=True, exist_ok=True)
+            command = [
+                str(ghidra),
+                project_root,
+                "cryptobap2",
+                "-deleteProject",
+                "-import",
+                str(binary),
+                "-scriptPath",
+                str(GHIDRA_SCRIPT.parent),
+                "-postScript",
+                GHIDRA_SCRIPT.name,
+                str(temp_output),
+                arch,
+                _sections_arg(sections),
+            ]
+            result = subprocess.run(
+                command,
+                env=ghidra_env,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+            )
+        log_path.write_text(result.stdout, encoding="utf-8")
+
+        diagnostics = validate_da(temp_output)
+        if result.returncode != 0:
+            diagnostics.append(
+                {
+                    "severity": "error",
+                    "code": "ghidra_failed",
+                    "message": f"analyzeHeadless exited with {result.returncode}; see {log_path}",
+                }
+            )
+        if any(item["severity"] == "error" for item in diagnostics):
+            raise DisassemblyError(f"Ghidra disassembly failed; see {log_path}")
+
+        temp_output.replace(output)
+    finally:
+        if temp_output.exists():
+            temp_output.unlink()
 
     return {
         "binary": binary,

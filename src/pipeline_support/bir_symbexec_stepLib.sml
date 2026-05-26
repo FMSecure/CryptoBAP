@@ -224,11 +224,9 @@ fun add_tgt_equ tgt be =
   exception state_exec_try_jmp_exp_var_exn;
   fun state_exec_try_jmp_exp_var n_dict lbl_tm est syst =
       SOME (
-      let
-	  val (vs, _) = hol88Lib.match jmp_exp_var_match_tm est
-              handle _ => (
-                     print ("couldn't match end statement: " ^ (term_to_string est) ^ "\n");
-                     raise ERR "couldn't match" (term_to_string est));
+	let
+	    val (vs, _) = hol88Lib.match jmp_exp_var_match_tm est
+		    handle _ => raise ERR "couldn't match" (term_to_string est);
 
 	  val _ = if not (bir_symbexec_oracleLib.is_indirect_jmp n_dict lbl_tm) then raise state_exec_try_jmp_exp_var_exn
 		  else ();
@@ -643,14 +641,12 @@ fun pc_type_with_stubbed_self_loop_calls bl_dict adr_dict lbl_tm syst =
   fun symb_exec_to_stop _      _      _       []                  _            _ acc =
         (symb_exec_to_stop_last_print := NONE; acc)
     | symb_exec_to_stop abpfun n_dict bl_dict (exec_st::exec_sts) stop_lbl_tms adr_dict acc =
-        let
-          val lastTime = !symb_exec_to_stop_last_print;
-          val timeToPrint = (Time.fromReal o LargeReal.-) (Time.toReal(Time.now()), LargeReal.fromInt 5);
-          val _ = if not(isSome lastTime) orelse
-                     Time.<(valOf lastTime, timeToPrint) then (
-                    symb_exec_to_stop_last_print := SOME (Time.now());
-                    print ("current number of stopped states: " ^ (Int.toString (length acc)) ^ "\n")
-                  ) else ();
+	      let
+		val lastTime = !symb_exec_to_stop_last_print;
+		val timeToPrint = (Time.fromReal o LargeReal.-) (Time.toReal(Time.now()), LargeReal.fromInt 5);
+		val _ = if not(isSome lastTime) orelse Time.<(valOf lastTime, timeToPrint) then
+		          symb_exec_to_stop_last_print := SOME (Time.now())
+		        else ();
 
           fun is_state_stopped syst =
             (List.exists (fn x => identical (SYST_get_pc syst) x) stop_lbl_tms) orelse
@@ -658,8 +654,7 @@ fun pc_type_with_stubbed_self_loop_calls bl_dict adr_dict lbl_tm syst =
 	      
           val exec_stopped = is_state_stopped exec_st;
 
-          val _ = if (not exec_stopped) orelse true then () else
-                  print ("stops: " ^ (Int.toString ((List.length acc) + 1)) ^ "\n");
+		val _ = ();
 
           val sts = if exec_stopped then [] else
                     symb_exec_block abpfun n_dict bl_dict adr_dict exec_st;

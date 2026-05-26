@@ -99,11 +99,10 @@ in
         else
           systs;
 
-      val _ = if not cfb then () else
-              List.app (fn syst =>
-                if state_is_running syst then () else
-                print "a non-running state is still present after feasibility check\n"
-              ) systs_filtered;
+	      val _ = if not cfb then () else
+		      List.app (fn syst =>
+		        if state_is_running syst then () else ()
+		      ) systs_filtered;
 
       fun remove_asserts_from_running syst =
           if state_is_running syst then

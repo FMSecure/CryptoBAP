@@ -1,4 +1,4 @@
-# CryptoBAP2
+# CryptoBAP2 (beta)
 
 CryptoBAP2 is a binary-to-protocol-model pipeline.  It lifts selected machine
 code into HOL/BIR artifacts, symbolically executes the selected code, records a
@@ -47,11 +47,11 @@ dependencies are:
 | --- | --- | --- |
 | Python 3 | Running the `cryptobap2` CLI | `python3` on `PATH` |
 | PyYAML | Reading YAML case files | `toolchain/requirements.txt` |
-| HOL4 `Holmake` | Building generated and support HOL theories | `HOLMAKE` or `--holmake` |
-| HolBA | Lifting `.da` disassembly into BIR/HOL | `HOLBA_DIR`, `HOLBADIR`, or `--holba` |
-| Tamarin prover | Staging and exporting configured `.spthy` sources | `TAMARIN` or `--tamarin` |
-| Squirrel prover | Validating generated Squirrel files | `SQUIRREL` or `--squirrel` |
-| Ghidra | Disassembling raw binaries to HolBA-compatible `.da` text | `GHIDRA_HEADLESS`, `GHIDRA_HOME`, `analyzeHeadless` on `PATH`, then `opt/ghidra_*` |
+| [HOL4](https://github.com/HOL-Theorem-Prover/HOL) | Building generated and support HOL theories | `HOLMAKE` or `--holmake` |
+| [HolBA](https://github.com/kth-step/HolBA) | Lifting `.da` disassembly into BIR/HOL | `HOLBA_DIR`, `HOLBADIR`, or `--holba` |
+| [Tamarin prover (Squirrel export fork)](https://github.com/yflxx/tamarin-prover-sqrl) | Staging and exporting configured `.spthy` sources | `TAMARIN` or `--tamarin` |
+| [Squirrel prover](https://github.com/squirrel-prover/squirrel-prover) | Validating generated Squirrel files | `SQUIRREL` or `--squirrel` |
+| [Ghidra](https://github.com/NationalSecurityAgency/ghidra) | Disassembling raw binaries to HolBA-compatible `.da` text | `GHIDRA_HEADLESS`, `GHIDRA_HOME`, or `--ghidra` |
 | Java/JDK 21+ | Running Ghidra | `java` on `PATH` |
 
 HolBA and `Holmake` are required for the lift and symbolic-execution stages.
@@ -59,8 +59,8 @@ Tamarin and Squirrel are required for Squirrel export and validation.  Ghidra an
 Java are only required when the input is a raw binary; cases that already point
 to a `.da` file can run without Ghidra.
 
-You can override tool paths either with environment variables or with global CLI
-options:
+Configure tool paths either with environment variables or with global CLI
+options. CryptoBAP2 does not assume dependency checkouts inside the repository.
 
 ```sh
 ./cryptobap2 \
@@ -68,7 +68,7 @@ options:
   --holmake "$HOLMAKE" \
   --tamarin "$TAMARIN" \
   --squirrel "$SQUIRREL" \
-  --ghidra opt/ghidra_12.0.4/support/analyzeHeadless \
+  --ghidra "$GHIDRA_HEADLESS" \
   doctor
 ```
 
@@ -93,11 +93,11 @@ copy:
 ./cryptobap2 install-ghidra
 ```
 
-The HOL pieces are built by `Holmake` as part of the pipeline stages.  To build
-the artifacts for one case, first make sure its configured input files exist:
+The HOL pieces are built by `Holmake` as part of the pipeline stages.  To make
+sure external tools and registered case metadata are available, run:
 
 ```sh
-./cryptobap2 --build-root _build/check check cases/xor.yaml
+./cryptobap2 doctor --strict
 ```
 
 Then run the production pipeline with an explicit build root:
@@ -121,9 +121,9 @@ The smallest registered example is `cases/xor.yaml`.  It models a small AArch64
 program that creates a key, encrypts a value with XOR-style encryption, and sends
 selected values on the public channel.
 
-The checked-in case expects its input fixtures under `examples/...` relative to
-this directory.  In trimmed checkouts those files may be absent; restore the
-fixtures or adjust the paths in a copy of the case before running it.
+The checked-in cases include the input disassembly and backend fixtures they
+reference under `examples/`, so the registered examples can be checked without
+depending on paths outside this directory.
 
 The important parts of the case are:
 
@@ -249,9 +249,9 @@ uses `<case>.sp`.
 ## Checks
 
 `run` invokes `check` after building the requested backend.  In this artifact,
-`check` can report expected warnings:
+`check` validates the generated artifacts for a case and can report expected
+warnings or errors when a stage has not been run yet:
 
-- HOL sources still contain `cheat` markers.
 - Squirrel export depends on `artifacts.tamarin_source` in the case file.
 - Local generated `.hol` directories may be reported if they are left in the
   source tree.

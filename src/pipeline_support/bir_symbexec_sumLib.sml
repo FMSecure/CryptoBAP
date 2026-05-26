@@ -188,14 +188,10 @@ in (* local *)
           (List.map fst (Redblackmap.listItems env))
         );
 
-      (* check that SPs match *)
-      val _ = if Redblackset.member (env_idents, bv_sp) then () else (
-        print "........................\n\n";
-        is_symbv_bexp_appfun (fn e => (print_term e; false)) env  vals  ``BVar "SP_process" (BType_Imm Bit64)``;
-        is_symbv_bexp_appfun (fn e => (print_term e; false)) env2 vals2 ``BVar "SP_process" (BType_Imm Bit64)``;
-        print "\n........................\n";
-        raise ERR "merge_states_vartointerval" "stack pointers are not equal!"
-       );
+	      (* check that SPs match *)
+	      val _ = if Redblackset.member (env_idents, bv_sp) then () else (
+		raise ERR "merge_states_vartointerval" "stack pointers are not equal!"
+	       );
 
       (* merge MEM properly *)
       fun find_symbv_mem syst_ bv_ =
@@ -282,8 +278,6 @@ in (* local *)
       (* take exactly two for now *)
       (* notice that in pred the list head is the lastly added pred *)
       val pred_bvs_prefix_len = length (identical_prefix (List.rev (SYST_get_pred syst1)) (List.rev (SYST_get_pred syst2)) []);
-      val _ = if pred_bvs_prefix_len = 3 then () else
-              print ("pred prefix length : " ^ (Int.toString pred_bvs_prefix_len) ^ "\n");
       val pred_bvs = List.rev (List.take (List.rev (SYST_get_pred syst1), pred_bvs_prefix_len));
       val _ = if list_eq identical
                    pred_bvs

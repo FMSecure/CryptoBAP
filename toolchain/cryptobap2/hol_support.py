@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -18,6 +19,18 @@ HOL_SOURCE_DIRS = ("tree", "sapic", "translate_to_sapic", "pretty_print", "pipel
 HOL_SUPPORT_CACHE_DIRNAME = "_cryptobap2-support-cache"
 HOL_SOURCE_ROOT = CRYPTOBAP2_ROOT / "src"
 PIPELINE_SUPPORT_ROOT = HOL_SOURCE_ROOT / "pipeline_support"
+HOLBA_DEPENDENCY_DIRS = (
+    "src/extra",
+    "src/theory/bir",
+    "src/theory/bir-support",
+    "src/shared",
+    "src/shared/convs",
+    "src/shared/smt",
+    "src/tools/cfg",
+    "src/tools/exec",
+    "src/tools/lifter",
+    "src/tools/symbexec",
+)
 PIPELINE_SUPPORT_FILES = (
     Path("bir_constpropLib.sml"),
     Path("bir_exp_helperLib.sml"),
@@ -92,13 +105,131 @@ def _iter_hol_source_files() -> list[tuple[Path, Path]]:
     return files
 
 
-def _hol_support_cache_key(*, holmake: Path, holba: Path) -> str:
+def _git_dir(root: Path) -> Path | None:
+    dot_git = root / ".git"
+    if dot_git.is_dir():
+        return dot_git
+    if dot_git.is_file():
+        text = dot_git.read_text(encoding="utf-8", errors="replace").strip()
+        prefix = "gitdir:"
+        if text.startswith(prefix):
+            path = Path(text[len(prefix) :].strip())
+            return path if path.is_absolute() else (root / path).resolve()
+    return None
+
+
+def _hash_file_marker(digest: hashlib._Hash, label: str, path: Path) -> None:
+    digest.update(label.encode("utf-8") + b"\0")
+    digest.update(str(path.resolve()).encode("utf-8") + b"\0")
+    if not path.exists():
+        digest.update(b"<missing>\0")
+        return
+    if path.is_file():
+        digest.update(b"file\0")
+        digest.update(sha256_file(path).encode("ascii") + b"\0")
+    elif path.is_dir():
+        digest.update(b"dir\0")
+    else:
+        digest.update(b"other\0")
+
+
+def _iter_holba_dependency_files(holba: Path) -> list[tuple[Path, Path]]:
+    files: list[tuple[Path, Path]] = []
+    for dirname in HOLBA_DEPENDENCY_DIRS:
+        root = holba / dirname
+        if not root.is_dir():
+            continue
+        for source in sorted(root.rglob("*")):
+            if not source.is_file() or _ignore_hol_source_artifact(source.name):
+                continue
+            if any(part in {".hol", "build", "__pycache__"} for part in source.parts):
+                continue
+            files.append((source.relative_to(holba), source))
+    return files
+
+
+def _hash_holba_dependency_files(digest: hashlib._Hash, holba: Path, label: str) -> None:
+    files = _iter_holba_dependency_files(holba)
+    digest.update(f"{label}-count:{len(files)}".encode("ascii") + b"\0")
+    for relative, source in files:
+        digest.update(str(relative).encode("utf-8") + b"\0")
+        digest.update(sha256_file(source).encode("ascii") + b"\0")
+
+
+def _git_dependency_status(holba: Path) -> str | None:
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(holba),
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+                "--",
+                *HOLBA_DEPENDENCY_DIRS,
+            ],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+    except OSError:
+        return None
+    if result.returncode != 0:
+        return None
+    return result.stdout
+
+
+def _holba_dependency_hash(holba: Path) -> str:
     digest = hashlib.sha256()
-    digest.update(b"cryptobap2-hol-support-v1\0")
+    resolved = holba.expanduser().resolve()
+    digest.update(b"holba-dependencies-v1\0")
+    digest.update(str(resolved).encode("utf-8") + b"\0")
+
+    git_dir = _git_dir(resolved)
+    if git_dir is not None:
+        digest.update(b"holba-git-fast\0")
+        _hash_file_marker(digest, "holba-git-head", git_dir / "HEAD")
+        head = git_dir / "HEAD"
+        if head.exists():
+            text = head.read_text(encoding="utf-8", errors="replace").strip()
+            ref_prefix = "ref:"
+            if text.startswith(ref_prefix):
+                ref_path = git_dir / text[len(ref_prefix) :].strip()
+                _hash_file_marker(digest, "holba-git-ref", ref_path)
+        _hash_file_marker(digest, "holba-git-index", git_dir / "index")
+        status = _git_dependency_status(resolved)
+        if status is None:
+            digest.update(b"holba-git-status-unavailable\0")
+            _hash_holba_dependency_files(digest, resolved, "holba-source")
+        else:
+            digest.update(b"holba-git-status\0")
+            digest.update(status.encode("utf-8") + b"\0")
+            if status:
+                _hash_holba_dependency_files(digest, resolved, "holba-dirty-source")
+        return digest.hexdigest()
+    else:
+        digest.update(b"holba-git-missing\0")
+
+    _hash_holba_dependency_files(digest, resolved, "holba-source")
+    return digest.hexdigest()
+
+
+def _hol_support_cache_key(
+    *,
+    holmake: Path,
+    holba: Path,
+    holba_dependency_hash: str,
+    source_files: list[tuple[Path, Path]],
+) -> str:
+    digest = hashlib.sha256()
+    digest.update(b"cryptobap2-hol-support-v2\0")
     digest.update(str(CRYPTOBAP2_ROOT.resolve()).encode("utf-8") + b"\0")
     digest.update(str(holba.resolve()).encode("utf-8") + b"\0")
     digest.update(str(holmake.resolve()).encode("utf-8") + b"\0")
-    for relative, source in _iter_hol_source_files():
+    _hash_file_marker(digest, "holmake", holmake)
+    digest.update(holba_dependency_hash.encode("ascii") + b"\0")
+    for relative, source in source_files:
         digest.update(str(relative).encode("utf-8") + b"\0")
         digest.update(sha256_file(source).encode("ascii") + b"\0")
     return digest.hexdigest()[:24]
@@ -123,13 +254,17 @@ def stage_hol_sources(
     _validate_hol_sources()
     clear_legacy_case_source_view(layout)
 
+    holba_dependency_hash = _holba_dependency_hash(holba)
+    source_files = _iter_hol_source_files()
     cache_root = layout.root.parent / HOL_SUPPORT_CACHE_DIRNAME / _hol_support_cache_key(
         holmake=holmake,
         holba=holba,
+        holba_dependency_hash=holba_dependency_hash,
+        source_files=source_files,
     )
     staged_root = cache_root / "src"
     staged_root.mkdir(parents=True, exist_ok=True)
-    for relative, source in _iter_hol_source_files():
+    for relative, source in source_files:
         target_dir = staged_root / relative.parent
         target_dir.mkdir(parents=True, exist_ok=True)
         _link_source_file(source, target_dir / source.name)
@@ -139,8 +274,9 @@ def stage_hol_sources(
             "cache_key": cache_root.name,
             "cryptobap2_root": str(CRYPTOBAP2_ROOT.resolve()),
             "holba": str(holba.resolve()),
+            "holba_dependency_hash": holba_dependency_hash,
             "holmake": str(holmake.resolve()),
-            "source_files": [str(relative) for relative, _source in _iter_hol_source_files()],
+            "source_files": [str(relative) for relative, _source in source_files],
         },
     )
     return staged_root

@@ -42,6 +42,8 @@ UNSAFE_CODES = {
     "squirrel_validation_failed",
     "missing_spthy",
     "missing_squirrel",
+    "missing_squirrel_binary",
+    "missing_lifted_label_metadata",
 }
 
 
@@ -125,18 +127,50 @@ def _strip_sml_block_comments(line: str, depth: int) -> tuple[str, int]:
     return "".join(output), depth
 
 
+def _strip_sml_strings(line: str) -> str:
+    output: list[str] = []
+    in_string = False
+    escaped = False
+    for char in line:
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            output.append(" ")
+            continue
+        if char == '"':
+            in_string = True
+            output.append(" ")
+            continue
+        output.append(char)
+    return "".join(output)
+
+
+_SML_DEBUG_GUARD_RE = re.compile(r"\bif\b.*\bdebug[A-Za-z0-9_']*\b|\bdebug[A-Za-z0-9_']*\b.*\bif\b", re.IGNORECASE)
+_SML_DISABLED_GUARD_RE = re.compile(r"\bif\s+true\s+then\s+\(\)\s+else\b|\bandalso\s+false\b", re.IGNORECASE)
+
+
 def _scan_unguarded_debug_prints(paths: Iterable[Path], *, exclude_parts: set[str] | None = None) -> list[Finding]:
-    regex = re.compile(r"\bval\s+_\s*=\s*(?:print|print_term)\b|\bprint_thm\b")
+    regex = re.compile(r"\b(?:print|print_term|print_thm)\b")
     findings: list[Finding] = []
     for path in _iter_files(paths, (".sml",), exclude_parts=exclude_parts):
         comment_depth = 0
+        guarded_lines = 0
         try:
             lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
         except OSError:
             continue
         for number, line in enumerate(lines, start=1):
             code, comment_depth = _strip_sml_block_comments(line, comment_depth)
-            if regex.search(code):
+            code = _strip_sml_strings(code)
+            has_print = regex.search(code) is not None
+            disabled_guard = _SML_DISABLED_GUARD_RE.search(code) is not None
+            if _SML_DEBUG_GUARD_RE.search(code) or (disabled_guard and not has_print):
+                guarded_lines = max(guarded_lines, 6)
+            if has_print and guarded_lines == 0 and not disabled_guard:
                 findings.append(
                     Finding(
                         "error",
@@ -146,6 +180,8 @@ def _scan_unguarded_debug_prints(paths: Iterable[Path], *, exclude_parts: set[st
                         number,
                     )
                 )
+            if guarded_lines > 0:
+                guarded_lines -= 1
     return findings
 
 
@@ -224,6 +260,8 @@ def _active_backends(case: CaseConfig, backends: list[str] | None) -> list[str]:
 
 
 def _stage_applies_to_backends(case: CaseConfig, stage: str, active_backends: list[str]) -> bool:
+    if set(active_backends) == {"tamarin"}:
+        return stage == "stage_spthy"
     if stage == "export_squirrel":
         return "squirrel" in active_backends
     if stage == "stage_spthy":
@@ -234,6 +272,17 @@ def _stage_applies_to_backends(case: CaseConfig, stage: str, active_backends: li
 
 
 def _artifact_applies_to_backends(case: CaseConfig, name: str, active_backends: list[str]) -> bool:
+    active = set(active_backends)
+    if active == {"tamarin"}:
+        return name in {"spthy", "source_segments_spthy"}
+    if name.startswith("source_segments_"):
+        folder = name.removeprefix("source_segments_")
+        if folder == "squirrel":
+            return "squirrel" in active
+        if folder == "spthy":
+            return bool(active & {"squirrel", "tamarin"})
+        if folder in {"bir", "tree", "model", "sapic"}:
+            return "squirrel" in active
     if name in {"squirrel", "readable_squirrel", "export_squirrel_log"}:
         return "squirrel" in active_backends
     if name in {"sapic", "translate_log"}:
@@ -346,7 +395,10 @@ def check_manifest_integrity(
 
 def check_label_artifacts(case: CaseConfig, layout: BuildLayout) -> list[Finding]:
     findings: list[Finding] = []
-    for diagnostic in validate_fragment_labels(case, layout):
+    manifest = load_manifest(layout.manifest_path)
+    lift_stage = manifest.get("stages", {}).get("lift") if manifest else None
+    require_metadata = isinstance(lift_stage, dict) and lift_stage.get("status") == "generated_unchecked"
+    for diagnostic in validate_fragment_labels(case, layout, require_metadata=require_metadata):
         findings.append(
             Finding(
                 str(diagnostic.get("severity", "warning")),
@@ -410,12 +462,14 @@ def run_checks(
     record: bool = False,
     backends: list[str] | None = None,
 ) -> list[Finding]:
+    active_backends = _active_backends(case, backends)
     findings: list[Finding] = []
     findings.extend(check_case_config(case))
     findings.extend(check_source_trust(strict))
-    findings.extend(check_label_artifacts(case, layout))
-    findings.extend(check_manifest_integrity(case, layout, backends=backends))
-    findings.extend(check_backend_artifacts(case, layout, strict=strict, backends=backends))
+    if "squirrel" in active_backends:
+        findings.extend(check_label_artifacts(case, layout))
+    findings.extend(check_manifest_integrity(case, layout, backends=active_backends))
+    findings.extend(check_backend_artifacts(case, layout, strict=strict, backends=active_backends))
     if record:
         update_manifest(
             case,
@@ -429,6 +483,7 @@ def run_checks(
 
 def check_failed(findings: list[Finding], *, strict: bool) -> bool:
     always_fail = {
+        *UNSAFE_CODES,
         "config_error",
         "missing_field",
         "missing_manifest",
@@ -454,6 +509,8 @@ def check_failed(findings: list[Finding], *, strict: bool) -> bool:
         "squirrel_validation_failed",
         "missing_spthy",
         "missing_squirrel",
+        "missing_squirrel_binary",
+        "missing_lifted_label_metadata",
         "ghidra_failed",
         "empty_disassembly",
         "bad_disassembly",

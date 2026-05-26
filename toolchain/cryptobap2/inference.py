@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from .paths import CRYPTOBAP2_ROOT
+from .yaml_emit import yaml_inline_list, yaml_scalar
 
 
 class InferenceError(ValueError):
@@ -481,29 +482,6 @@ def _relative_or_absolute(path: Path) -> str:
         return str(resolved)
 
 
-def _yaml_scalar(value: object) -> str:
-    if isinstance(value, bool):
-        return "true" if value else "false"
-    if isinstance(value, int):
-        return str(value)
-    if value is None:
-        return "null"
-    return json.dumps(str(value))
-
-
-def _yaml_inline_list(values: list[object]) -> str:
-    if not values:
-        return "[]"
-    return "[" + ", ".join(_yaml_scalar(value) for value in values) + "]"
-
-
-def _yaml_list(indent: int, values: list[object]) -> list[str]:
-    pad = " " * indent
-    if not values:
-        return [f"{pad}[]"]
-    return [f"{pad}- {_yaml_scalar(value)}" for value in values]
-
-
 def _infer_extra_variables(crypto: dict[str, str], existing: list[dict[str, Any]] | None = None) -> list[dict[str, Any]]:
     extra = list(existing or [])
     names = {str(item.get("name")) for item in extra if isinstance(item, dict)}
@@ -682,8 +660,8 @@ def _render_extra_variables(extra_variables: list[dict[str, Any]]) -> list[str]:
     for variable in extra_variables:
         lines.extend(
             [
-                f"    - name: {_yaml_scalar(variable.get('name', ''))}",
-                f"      type: {_yaml_scalar(variable.get('type', 'Imm'))}",
+                f"    - name: {yaml_scalar(variable.get('name', ''))}",
+                f"      type: {yaml_scalar(variable.get('type', 'Imm'))}",
                 f"      width: {int(variable.get('width', 64))}",
             ]
         )
@@ -695,19 +673,19 @@ def _render_inference(metadata: dict[str, Any]) -> list[str]:
         return []
     lines = [
         "inference:",
-        f"  engine: {_yaml_scalar(metadata.get('engine', 'cryptobap2-heuristic-v1'))}",
-        f"  scope: {_yaml_scalar(metadata.get('scope', 'auto'))}",
+        f"  engine: {yaml_scalar(metadata.get('engine', 'cryptobap2-heuristic-v1'))}",
+        f"  scope: {yaml_scalar(metadata.get('scope', 'auto'))}",
         f"  discovered_function_count: {int(metadata.get('discovered_function_count', 0))}",
         f"  selected_function_count: {int(metadata.get('selected_function_count', 0))}",
-        f"  selected_symbols: {_yaml_inline_list(list(metadata.get('selected_symbols', [])))}",
-        f"  library: {_yaml_inline_list(list(metadata.get('library', [])))}",
-        f"  adversary: {_yaml_inline_list(list(metadata.get('adversary', [])))}",
+        f"  selected_symbols: {yaml_inline_list(list(metadata.get('selected_symbols', [])))}",
+        f"  library: {yaml_inline_list(list(metadata.get('library', [])))}",
+        f"  adversary: {yaml_inline_list(list(metadata.get('adversary', [])))}",
         "  crypto:",
     ]
     crypto = metadata.get("crypto", {})
     if isinstance(crypto, dict) and crypto:
         for name, label in sorted(crypto.items()):
-            lines.append(f"    {_yaml_scalar(name)}: {_yaml_scalar(label)}")
+            lines.append(f"    {yaml_scalar(name)}: {yaml_scalar(label)}")
     else:
         lines.append("    {}")
     classifications = metadata.get("classifications", [])
@@ -718,17 +696,17 @@ def _render_inference(metadata: dict[str, Any]) -> list[str]:
                 continue
             lines.extend(
                 [
-                    f"    - name: {_yaml_scalar(item.get('name', ''))}",
-                    f"      label: {_yaml_scalar(item.get('label', ''))}",
-                    f"      confidence: {_yaml_scalar(item.get('confidence', ''))}",
-                    f"      reason: {_yaml_scalar(item.get('reason', ''))}",
+                    f"    - name: {yaml_scalar(item.get('name', ''))}",
+                    f"      label: {yaml_scalar(item.get('label', ''))}",
+                    f"      confidence: {yaml_scalar(item.get('confidence', ''))}",
+                    f"      reason: {yaml_scalar(item.get('reason', ''))}",
                 ]
             )
     else:
         lines.append("    []")
-    lines.append(f"  unresolved: {_yaml_inline_list(list(metadata.get('unresolved', [])))}")
+    lines.append(f"  unresolved: {yaml_inline_list(list(metadata.get('unresolved', [])))}")
     lines.append(f"  unresolved_count: {int(metadata.get('unresolved_count', 0))}")
-    lines.append(f"  warnings: {_yaml_inline_list(list(metadata.get('warnings', [])))}")
+    lines.append(f"  warnings: {yaml_inline_list(list(metadata.get('warnings', [])))}")
     return lines
 
 
@@ -736,7 +714,7 @@ def _render_bool_field(execution: dict[str, Any], name: str) -> str:
     value = execution.get(name)
     if not isinstance(value, bool):
         raise ValueError(f"execution.{name} must be a boolean")
-    return _yaml_scalar(value)
+    return yaml_scalar(value)
 
 
 def render_case_yaml(raw: dict[str, Any]) -> str:
@@ -758,16 +736,16 @@ def render_case_yaml(raw: dict[str, Any]) -> str:
     lines = [
         "# Generated by cryptobap2 inference.",
         "# Review inferred fragment boundaries and function classifications before relying on proof results.",
-        f"name: {_yaml_scalar(raw.get('name', 'generated-case'))}",
-        f"description: {_yaml_scalar(raw.get('description', 'Draft case inferred from binary input.'))}",
-        f"arch: {_yaml_scalar(raw.get('arch', 'arm8'))}",
-        f"channel: {_yaml_scalar(raw.get('channel', 'Channel'))}",
+        f"name: {yaml_scalar(raw.get('name', 'generated-case'))}",
+        f"description: {yaml_scalar(raw.get('description', 'Draft case inferred from binary input.'))}",
+        f"arch: {yaml_scalar(raw.get('arch', 'arm8'))}",
+        f"channel: {yaml_scalar(raw.get('channel', 'Channel'))}",
         "input:",
     ]
     if input_block.get("binary"):
-        lines.append(f"  binary: {_yaml_scalar(input_block['binary'])}")
+        lines.append(f"  binary: {yaml_scalar(input_block['binary'])}")
     if input_block.get("da"):
-        lines.append(f"  da: {_yaml_scalar(input_block['da'])}")
+        lines.append(f"  da: {yaml_scalar(input_block['da'])}")
     disassembly = input_block.get("disassembly", {})
     sections = [".text"]
     if isinstance(disassembly, dict):
@@ -776,9 +754,9 @@ def render_case_yaml(raw: dict[str, Any]) -> str:
         [
             "  disassembly:",
             "    tool: ghidra",
-            f"    sections: {_yaml_inline_list(sections)}",
-            f"  theory: {_yaml_scalar(input_block.get('theory', raw.get('name', 'Generated')))}",
-            f"  symbols: {_yaml_inline_list([str(item) for item in input_block.get('symbols', [])])}",
+            f"    sections: {yaml_inline_list(sections)}",
+            f"  theory: {yaml_scalar(input_block.get('theory', raw.get('name', 'Generated')))}",
+            f"  symbols: {yaml_inline_list([str(item) for item in input_block.get('symbols', [])])}",
             "execution:",
             "  fragments:",
         ]
@@ -788,9 +766,9 @@ def render_case_yaml(raw: dict[str, Any]) -> str:
             continue
         lines.extend(
             [
-                f"    - name: {_yaml_scalar(fragment.get('name', 'fragment'))}",
+                f"    - name: {yaml_scalar(fragment.get('name', 'fragment'))}",
                 f"      entry_label: {int(fragment.get('entry_label', 0))}",
-                f"      exit_labels: {_yaml_inline_list([int(item) for item in fragment.get('exit_labels', [])])}",
+                f"      exit_labels: {yaml_inline_list([int(item) for item in fragment.get('exit_labels', [])])}",
             ]
         )
         if fragment.get("end_label") is not None:
@@ -807,29 +785,29 @@ def render_case_yaml(raw: dict[str, Any]) -> str:
     lines.extend(
         [
             "functions:",
-            f"  library: {_yaml_inline_list([str(item) for item in functions.get('library', [])])}",
-            f"  adversary: {_yaml_inline_list([str(item) for item in functions.get('adversary', [])])}",
+            f"  library: {yaml_inline_list([str(item) for item in functions.get('library', [])])}",
+            f"  adversary: {yaml_inline_list([str(item) for item in functions.get('adversary', [])])}",
             "  crypto:",
         ]
     )
     crypto = functions.get("crypto", {})
     if isinstance(crypto, dict) and crypto:
         for name, label in sorted(crypto.items()):
-            lines.append(f"    {_yaml_scalar(name)}: {_yaml_scalar(label)}")
+            lines.append(f"    {yaml_scalar(name)}: {yaml_scalar(label)}")
     else:
         lines.append("    {}")
     lines.extend(
         [
-            f"backends: {_yaml_inline_list([str(item) for item in raw.get('backends', ['squirrel'])])}",
+            f"backends: {yaml_inline_list([str(item) for item in raw.get('backends', ['squirrel'])])}",
             "proof_status:",
         ]
     )
     if proof_status:
         for name, status in sorted(proof_status.items()):
-            lines.append(f"  {_yaml_scalar(name)}: {_yaml_scalar(status)}")
+            lines.append(f"  {yaml_scalar(name)}: {yaml_scalar(status)}")
     else:
         lines.append("  {}")
-    lines.append(f"security_lemmas: {_yaml_inline_list([str(item) for item in raw.get('security_lemmas', [])])}")
+    lines.append(f"security_lemmas: {yaml_inline_list([str(item) for item in raw.get('security_lemmas', [])])}")
     lines.extend(_render_inference(raw.get("inference", {})))
     lines.append("")
     return "\n".join(lines)
